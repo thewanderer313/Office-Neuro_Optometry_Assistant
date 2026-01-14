@@ -1,6 +1,7 @@
 // js/anisocoria.page.js
 import { sessionStore } from "./common.js";
 import { initSidebar } from "./sidebar.js";
+import { compute } from "./engine.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -12,6 +13,74 @@ function toNumOrNull(v) {
 function formatMm(x) {
   if (x === null) return "—";
   return `${x.toFixed(1)} mm`;
+}
+
+// Clinical guidance hint functions (modeled after VF module)
+function pupilLocalizationHint(f) {
+  if (f.dominance === "light") {
+    if (f.ptosis || f.diplopia) {
+      return "Large pupil + ptosis/diplopia → CN III pathway rises (compressive vs ischemic). Check all EOM gazes.";
+    }
+    if (f.lnd || f.vermiform) {
+      return "Large pupil + light-near dissociation/vermiform → Adie tonic pupil pattern rises.";
+    }
+    if (f.anticholinergic) {
+      return "Large pupil + anticholinergic exposure → pharmacologic mydriasis most likely.";
+    }
+    return "Large pupil pattern (anisocoria greater in light) → the larger pupil is abnormal. Consider CN III, Adie, or pharmacologic.";
+  }
+  if (f.dominance === "dark") {
+    if (f.dilationLag || f.anhidrosis || f.ptosis) {
+      return "Small pupil + dilation lag/anhidrosis/ptosis → Horner syndrome rises. Localize: central vs preganglionic vs postganglionic.";
+    }
+    return "Small pupil pattern (anisocoria greater in dark) → the smaller pupil is abnormal. Consider Horner syndrome.";
+  }
+  if (f.dominance === "equal") {
+    return "Equal anisocoria in light and dark → less localizing. Consider mechanical iris damage, prior surgery, or early pathology.";
+  }
+  return "Enter both light and dark pupil measurements to determine pattern (which pupil is abnormal).";
+}
+
+function pupilQualityHint(session) {
+  const p = session.pupils || {};
+  const hasLight = p.odLight !== null && p.osLight !== null;
+  const hasDark = p.odDark !== null && p.osDark !== null;
+
+  if (!hasLight && !hasDark) {
+    return "Measure pupils in both light and dark conditions for accurate pattern determination.";
+  }
+  if (!hasLight) {
+    return "Light measurements missing—needed to identify large pupil patterns (CN III, Adie, pharmacologic).";
+  }
+  if (!hasDark) {
+    return "Dark measurements missing—needed to identify small pupil patterns (Horner syndrome).";
+  }
+  return "Light and dark measurements present. Confirm consistent technique and room lighting.";
+}
+
+function pupilNextDiscriminatorHint(f) {
+  if (f.dominance === "light") {
+    if (f.ptosis && (f.acute || f.painful)) {
+      return "Acute painful large pupil + ptosis is CN III compression until proven otherwise. Emergent imaging indicated.";
+    }
+    if (f.lnd) {
+      return "Light-near dissociation present. Check slit lamp for vermiform iris movements to support Adie diagnosis.";
+    }
+    if (!f.lnd && !f.vermiform && !f.anticholinergic) {
+      return "Test light-near dissociation: does pupil constrict better to near target than light? Check for anticholinergic exposure.";
+    }
+    return "Consider dilute pilocarpine 0.125% testing—Adie pupil will constrict (denervation supersensitivity), pharmacologic will not.";
+  }
+  if (f.dominance === "dark") {
+    if (f.acute || f.painful) {
+      return "Acute/painful Horner: strongly consider carotid dissection. Ask about neck pain, recent trauma, and consider urgent CTA/MRA.";
+    }
+    if (!f.dilationLag) {
+      return "Check for dilation lag: observe pupil for 15-20 seconds after lights off—delayed dilation supports Horner.";
+    }
+    return "Confirm with apraclonidine 0.5%: reversal of anisocoria (Horner pupil dilates) is diagnostic.";
+  }
+  return "Complete light/dark measurements, then check triage flags and special signs to refine the differential.";
 }
 
 function syncFromSession(session) {
@@ -37,6 +106,10 @@ function syncFromSession(session) {
   $("anticholinergicExposure").checked = !!session.pupils.anticholinergicExposure;
   $("sympathomimeticExposure").checked = !!session.pupils.sympathomimeticExposure;
 
+  // RAPD
+  $("rapdOD").value = session.pupils.rapdOD || "";
+  $("rapdOS").value = session.pupils.rapdOS || "";
+
   // local metrics display
   const odL = toNumOrNull(session.pupils.odLight);
   const osL = toNumOrNull(session.pupils.osLight);
@@ -48,6 +121,18 @@ function syncFromSession(session) {
 
   $("anisLight").textContent = formatMm(anisL);
   $("anisDark").textContent  = formatMm(anisD);
+
+  // Update clinical guidance hints
+  const out = compute(session);
+  const f = out.features;
+
+  const locEl = $("pupilLocalize");
+  const qualEl = $("pupilQuality");
+  const nextEl = $("pupilNext");
+
+  if (locEl) locEl.textContent = pupilLocalizationHint(f);
+  if (qualEl) qualEl.textContent = pupilQualityHint(session);
+  if (nextEl) nextEl.textContent = pupilNextDiscriminatorHint(f);
 }
 
 function bind() {
@@ -74,6 +159,10 @@ function bind() {
   $("vermiform").addEventListener("change", e => sessionStore.set("pupils.vermiform", e.target.checked));
   $("anticholinergicExposure").addEventListener("change", e => sessionStore.set("pupils.anticholinergicExposure", e.target.checked));
   $("sympathomimeticExposure").addEventListener("change", e => sessionStore.set("pupils.sympathomimeticExposure", e.target.checked));
+
+  // RAPD
+  $("rapdOD").addEventListener("change", e => sessionStore.set("pupils.rapdOD", e.target.value));
+  $("rapdOS").addEventListener("change", e => sessionStore.set("pupils.rapdOS", e.target.value));
 }
 
 function init() {

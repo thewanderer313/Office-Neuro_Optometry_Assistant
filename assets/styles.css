@@ -152,6 +152,19 @@ h3 {
   color: var(--danger);
 }
 
+.callout[data-level="critical"] {
+  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.15);
+  color: #fecaca;
+  font-weight: 700;
+  animation: critical-pulse 2s ease-in-out infinite;
+}
+
+@keyframes critical-pulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.6); }
+  50% { border-color: rgba(239, 68, 68, 0.9); }
+}
+
 .dxItem {
   border: 1px solid var(--line);
   background: #0e1017;
@@ -187,6 +200,59 @@ h3 {
 
 .dxWhy ul {
   margin: 8px 0 0 18px
+}
+
+/* Score tier styling */
+.dxScore[data-tier="strong"] {
+  color: var(--accent);
+  background: rgba(110, 231, 183, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.dxScore[data-tier="moderate"] {
+  color: var(--info);
+  background: rgba(96, 165, 250, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.dxScore[data-tier="low"] {
+  color: var(--muted);
+}
+
+/* Differential item tier borders */
+.dxItem--strong {
+  border-color: rgba(110, 231, 183, 0.35);
+}
+
+.dxItem--moderate {
+  border-color: rgba(96, 165, 250, 0.25);
+}
+
+/* Next steps styling */
+.dxNextSteps {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.dxNextStepsLabel {
+  color: var(--accent);
+  font-weight: 900;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+}
+
+.dxNextSteps ul {
+  margin: 0 0 0 18px;
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.dxNextSteps li {
+  margin-bottom: 4px;
 }
 
 .small {

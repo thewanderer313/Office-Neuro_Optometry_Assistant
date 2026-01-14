@@ -9,6 +9,12 @@ function fmtMm(x) {
   return `${Number(x).toFixed(1)} mm`;
 }
 
+function getScoreTier(score) {
+  if (score >= 8) return { label: "Strong match", tier: "strong" };
+  if (score >= 5) return { label: "Consider", tier: "moderate" };
+  return { label: "Less likely", tier: "low" };
+}
+
 function setCallout(level, text) {
   const el = $("sbUrgency");
   el.dataset.level = level;
@@ -25,18 +31,27 @@ function renderDx(differential) {
   }
 
   differential.slice(0, 5).forEach((d, idx) => {
+    const tier = getScoreTier(d.score);
+
+    // Format "why" reasons with point values if available
     const why = (d.why && d.why.length)
       ? `<div class="dxWhy"><ul>${d.why.map(x => `<li>${x}</li>`).join("")}</ul></div>`
       : `<div class="dxWhy">No matched features listed.</div>`;
 
+    // Format next steps if available
+    const nextSteps = (d.nextSteps && d.nextSteps.length)
+      ? `<div class="dxNextSteps"><div class="dxNextStepsLabel">Next steps:</div><ul>${d.nextSteps.map(x => `<li>${x}</li>`).join("")}</ul></div>`
+      : "";
+
     const el = document.createElement("div");
-    el.className = "dxItem";
+    el.className = `dxItem dxItem--${tier.tier}`;
     el.innerHTML = `
       <div class="dxTop">
         <div class="dxName">${idx + 1}. ${d.name}</div>
-        <div class="dxScore">Score ${d.score}</div>
+        <div class="dxScore" data-tier="${tier.tier}">${tier.label}</div>
       </div>
       ${why}
+      ${nextSteps}
     `;
     wrap.appendChild(el);
   });

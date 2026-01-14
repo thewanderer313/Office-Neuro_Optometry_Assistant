@@ -115,6 +115,30 @@
           </div>
         </div>
 
+        <h3>RAPD (Relative Afferent Pupillary Defect)</h3>
+        <div class="row">
+          <label>RAPD OD
+            <select id="rapdOD">
+              <option value="">—</option>
+              <option value="none">None</option>
+              <option value="1+">1+ (trace)</option>
+              <option value="2+">2+ (mild)</option>
+              <option value="3+">3+ (moderate)</option>
+              <option value="4+">4+ (severe)</option>
+            </select>
+          </label>
+          <label>RAPD OS
+            <select id="rapdOS">
+              <option value="">—</option>
+              <option value="none">None</option>
+              <option value="1+">1+ (trace)</option>
+              <option value="2+">2+ (mild)</option>
+              <option value="3+">3+ (moderate)</option>
+              <option value="4+">4+ (severe)</option>
+            </select>
+          </label>
+        </div>
+
         <h3>Special signs / exposures</h3>
         <div class="row">
           <label class="check"><input type="checkbox" id="lightNearDissociation"> Light–near dissociation</label>
@@ -137,8 +161,23 @@
             <div class="v" id="anisDark">—</div>
           </div>
           <div class="metric">
-            <div class="k">Notes</div>
-            <div class="v small">Threshold is 0.5 mm</div>
+            <div class="k">Threshold</div>
+            <div class="v small">0.5 mm</div>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="k">Localization hint</div>
+            <div class="v small" id="pupilLocalize">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">Data quality</div>
+            <div class="v small" id="pupilQuality">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">Next discriminator</div>
+            <div class="v small" id="pupilNext">—</div>
           </div>
         </div>
       </section>

@@ -74,6 +74,8 @@
         <div class="row">
           <label class="check"><input type="checkbox" id="diplopia"> Diplopia present</label>
           <label class="check"><input type="checkbox" id="ptosis"> Ptosis present</label>
+          <label class="check"><input type="checkbox" id="fatigable"> Fatigable (worsens with sustained use)</label>
+          <label class="check"><input type="checkbox" id="painOnMovement"> Pain on eye movement</label>
         </div>
 
         <h3>Gross motility flags</h3>
@@ -100,6 +102,21 @@
             <span class="small">Free text (stored in session)</span>
             <input type="text" id="eomNotes" placeholder="e.g., worse in R gaze; new onset; fatigable..." />
           </label>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="k">Localization hint</div>
+            <div class="v small" id="eomLocalize">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">Data quality</div>
+            <div class="v small" id="eomQuality">—</div>
+          </div>
+          <div class="metric">
+            <div class="k">Next discriminator</div>
+            <div class="v small" id="eomNext">—</div>
+          </div>
         </div>
       </section>
     </main>

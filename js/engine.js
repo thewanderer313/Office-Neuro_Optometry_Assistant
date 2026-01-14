@@ -73,6 +73,9 @@ export function deriveFeatures(session) {
     vermiform: !!p.vermiform,
     anticholinergic: !!p.anticholinergicExposure,
     sympathomimetic: !!p.sympathomimeticExposure,
+    rapdOD: p.rapdOD || "",
+    rapdOS: p.rapdOS || "",
+    hasRAPD: !!(p.rapdOD && p.rapdOD !== "none") || !!(p.rapdOS && p.rapdOS !== "none"),
 
     // EOM basics (starter)
     diplopia: !!e.diplopia,
@@ -81,6 +84,8 @@ export function deriveFeatures(session) {
     abductionDeficit: e.abductionDeficit ?? null,
     adductionDeficit: e.adductionDeficit ?? null,
     verticalLimitation: e.verticalLimitation ?? null,
+    fatigable: !!e.fatigable,
+    painOnMovement: !!e.painOnMovement,
 
     // Visual Fields
     vf_symptoms: !!vf.complaint,
@@ -100,7 +105,7 @@ export function deriveFeatures(session) {
 
 export function scoreDifferential(f) {
   const dx = [];
-  const add = (name, score, why) => dx.push({ name, score, why });
+  const add = (name, score, why, nextSteps = []) => dx.push({ name, score, why, nextSteps });
 
   const largePattern = f.dominance === "light"; // anisocoria larger in light → large pupil abnormal
   const smallPattern = f.dominance === "dark";  // anisocoria larger in dark → small pupil abnormal
@@ -127,31 +132,54 @@ export function scoreDifferential(f) {
       }
     }
 
-    if (s > 0) add("Physiologic anisocoria", s, why);
+    if (s > 0) add("Physiologic anisocoria", s, why, [
+      "Confirm measurements in consistent lighting",
+      "Review old photos if available to confirm chronicity"
+    ]);
   }
 
 
   // Horner syndrome
   {
     let s = 0; const why = [];
+    const nextSteps = [];
     if (smallPattern) { s += 4; why.push("Greater in dark → small pupil abnormal pattern"); }
     if (f.dilationLag) { s += 2; why.push("Dilation lag"); }
     if (f.ptosis) { s += 2; why.push("Ptosis"); }
     if (f.anhidrosis) { s += 1; why.push("Anhidrosis"); }
     if (f.acute || f.painful) { s += 1; why.push("Acute/painful context"); }
-    add("Horner syndrome", s, why);
+
+    // Context-sensitive next steps
+    if (s > 0) {
+      nextSteps.push("Consider apraclonidine 0.5% or cocaine testing to confirm");
+      if (f.acute || f.painful) {
+        nextSteps.push("If acute + pain/headache: strongly consider urgent carotid imaging (CTA/MRA) to exclude dissection");
+      }
+      nextSteps.push("If confirmed: hydroxyamphetamine to localize (preganglionic vs postganglionic)");
+    }
+    add("Horner syndrome", s, why, nextSteps);
   }
 
   // Compressive 3rd nerve palsy concern
   {
     let s = 0; const why = [];
+    const nextSteps = [];
     if (largePattern) { s += 4; why.push("Greater in light → large pupil abnormal pattern"); }
     if (f.ptosis) { s += 2; why.push("Ptosis"); }
     if (f.diplopia) { s += 2; why.push("Diplopia/EOM concern"); }
     if (f.acute) { s += 2; why.push("Acute onset"); }
     if (f.painful) { s += 2; why.push("Pain/headache"); }
     if (f.neuroSx) { s += 2; why.push("Other neuro symptoms"); }
-    add("Compressive 3rd nerve palsy concern", s, why);
+
+    // Context-sensitive next steps
+    if (s > 0) {
+      if (f.acute || f.painful || f.neuroSx) {
+        nextSteps.push("Strongly consider emergent CTA/MRA head to exclude aneurysm (especially PComm)");
+      }
+      nextSteps.push("Assess extraocular movements in all gazes");
+      nextSteps.push("Check for aberrant regeneration signs if chronic");
+    }
+    add("Compressive 3rd nerve palsy concern", s, why, nextSteps);
   }
 
   // Adie / tonic pupil
@@ -160,7 +188,11 @@ export function scoreDifferential(f) {
     if (largePattern) { s += 2; why.push("Large pupil pattern"); }
     if (f.lnd) { s += 3; why.push("Light–near dissociation"); }
     if (f.vermiform) { s += 2; why.push("Segmental/vermiform movement"); }
-    add("Adie / tonic pupil", s, why);
+    add("Adie / tonic pupil", s, why, [
+      "Examine iris at slit lamp for segmental vermiform movements",
+      "Test accommodation—may be intact with slow re-dilation",
+      "Consider dilute pilocarpine 0.125% for denervation supersensitivity"
+    ]);
   }
 
   // Pharmacologic mydriasis
@@ -169,15 +201,66 @@ export function scoreDifferential(f) {
     if (largePattern) { s += 2; why.push("Large pupil pattern"); }
     if (f.anticholinergic) { s += 4; why.push("Anticholinergic exposure"); }
     if (f.sympathomimetic) { s += 2; why.push("Sympathomimetic exposure"); }
-    add("Pharmacologic mydriasis", s, why);
+    add("Pharmacologic mydriasis", s, why, [
+      "Review medication list and recent exposures",
+      "Ask about eye drops, scopolamine patches, motion sickness meds",
+      "Pupil typically fixed—will not constrict to 1% pilocarpine if pharmacologic"
+    ]);
   }
 
   // Starter EOM hook: CN VI pattern
   {
     let s = 0; const why = [];
+    const nextSteps = [];
     if (f.diplopia && f.abductionDeficit === true) { s += 3; why.push("Diplopia + abduction deficit"); }
     if (f.comitant === false) { s += 1; why.push("Incomitant deviation"); }
-    if (s > 0) add("CN VI palsy pattern (EOM-based starter)", s, why);
+
+    if (s > 0) {
+      nextSteps.push("Quantify deviation with prism cover testing");
+      if (f.acute) {
+        nextSteps.push("If acute/isolated: consider MRI brain with attention to skull base");
+      }
+      nextSteps.push("If microvascular risk factors + isolated CN VI: may observe 3 months");
+    }
+    if (s > 0) add("CN VI palsy pattern (EOM-based starter)", s, why, nextSteps);
+  }
+
+  // Myasthenia gravis pattern
+  {
+    let s = 0; const why = [];
+    const nextSteps = [];
+    if (f.fatigable) { s += 4; why.push("Fatigable weakness"); }
+    if (f.ptosis && f.diplopia) { s += 3; why.push("Ptosis + diplopia combination"); }
+    else if (f.ptosis) { s += 1; why.push("Ptosis present"); }
+    else if (f.diplopia) { s += 1; why.push("Diplopia present"); }
+    // Pupil-sparing pattern boosts MG
+    if ((f.ptosis || f.diplopia) && !f.dominance) { s += 1; why.push("Pupil-sparing pattern"); }
+
+    if (s > 0) {
+      nextSteps.push("Assess for fatigue: sustained upgaze 1-2 minutes for ptosis worsening");
+      nextSteps.push("Consider ice pack test (improvement with cooling)");
+      nextSteps.push("Check anti-AChR and anti-MuSK antibodies");
+      nextSteps.push("If confirmed: CT chest to evaluate for thymoma");
+    }
+    if (s > 0) add("Myasthenia gravis pattern", s, why, nextSteps);
+  }
+
+  // Orbital inflammatory / pain-on-movement pattern
+  {
+    let s = 0; const why = [];
+    const nextSteps = [];
+    if (f.painOnMovement) { s += 4; why.push("Pain on eye movement"); }
+    if (f.diplopia && f.painOnMovement) { s += 2; why.push("Diplopia + pain combination"); }
+    if (f.painful) { s += 1; why.push("General pain/headache context"); }
+
+    if (s > 0) {
+      nextSteps.push("Examine for proptosis, chemosis, and lid edema");
+      nextSteps.push("Consider MRI orbits with contrast for orbital inflammation");
+      if (f.vf_central_scotoma || f.hasRAPD) {
+        nextSteps.push("Central scotoma/RAPD: consider optic neuritis—MRI brain/orbits with contrast");
+      }
+    }
+    if (s > 0) add("Orbital inflammatory / optic neuritis pattern", s, why, nextSteps);
   }
 
   // =========================
@@ -195,42 +278,84 @@ export function scoreDifferential(f) {
     if (f.vf_respects_vertical) { s += 2; why.push("Respects vertical meridian"); }
     if (f.vf_laterality === "binocular") { s += 1; why.push("Binocular / both eyes"); }
     if (relPenalty) { s += relPenalty; if (relNote) why.push(relNote); }
-    if (s > 0) add("Chiasmal process / sellar compression pattern (VF-based)", s, why);
+    if (s > 0) add("Chiasmal process / sellar compression pattern (VF-based)", s, why, [
+      "Strongly consider MRI pituitary/sella with contrast",
+      "Check pituitary hormones: prolactin, TSH, ACTH, IGF-1",
+      "Refer to neuro-ophthalmology and/or neurosurgery"
+    ]);
   }
 
   // Retrochiasmal lesion pattern (tract/radiations/occipital)
   {
     let s = 0; const why = [];
+    const nextSteps = [];
     if (f.vf_homonymous) { s += 6; why.push("Homonymous pattern"); }
     if (f.vf_respects_vertical) { s += 2; why.push("Respects vertical meridian"); }
     if (f.vf_congruity === "high") { s += 2; why.push("High congruity"); }
     if (f.vf_congruity === "low") { s += 1; why.push("Lower congruity"); }
     if (relPenalty) { s += relPenalty; if (relNote) why.push(relNote); }
-    if (s > 0) add("Retrochiasmal lesion pattern (VF-based)", s, why);
+
+    if (s > 0) {
+      if (f.acute) {
+        nextSteps.push("If acute: consider stroke protocol, check last known well time");
+      }
+      nextSteps.push("MRI brain with attention to optic tract, radiations, occipital lobe");
+      if (f.vf_congruity === "high") {
+        nextSteps.push("High congruity suggests occipital cortex localization");
+      } else if (f.vf_congruity === "low") {
+        nextSteps.push("Low congruity suggests optic tract or anterior radiations");
+      }
+    }
+    if (s > 0) add("Retrochiasmal lesion pattern (VF-based)", s, why, nextSteps);
   }
 
   // Optic nerve / anterior ischemic-type pattern
   {
     let s = 0; const why = [];
+    const nextSteps = [];
     if (f.vf_altitudinal && f.vf_respects_horizontal) {
       s += 6; why.push("Altitudinal + respects horizontal meridian");
     } else if (f.vf_altitudinal) {
       s += 4; why.push("Altitudinal pattern");
     }
     if (f.vf_laterality === "mono") { s += 1; why.push("Monocular pattern"); }
+    if (f.hasRAPD) { s += 2; why.push("RAPD present—supports anterior pathway"); }
     if (relPenalty) { s += relPenalty; if (relNote) why.push(relNote); }
-    if (s > 0) add("Optic nerve / anterior pathway pattern (VF-based)", s, why);
+
+    if (s > 0) {
+      nextSteps.push("Examine optic disc for edema (acute AION) or pallor (prior event)");
+      nextSteps.push("Check ESR/CRP urgently if age >50 to exclude GCA");
+      if (!f.hasRAPD) {
+        nextSteps.push("Assess RAPD—expected in anterior optic nerve pathology");
+      }
+    }
+    if (s > 0) add("Optic nerve / anterior pathway pattern (VF-based)", s, why, nextSteps);
   }
 
   // Central scotoma / papillomacular bundle pattern
   {
     let s = 0; const why = [];
+    const nextSteps = [];
     if (f.vf_central_scotoma) { s += 6; why.push("Central scotoma"); }
     if (f.vf_laterality === "mono") { s += 1; why.push("Monocular pattern"); }
     if (f.vf_symptoms) { s += 1; why.push("Visual complaint present"); }
     if (f.vf_new_defect) { s += 1; why.push("New vs baseline"); }
+    if (f.hasRAPD) { s += 2; why.push("RAPD present—suggests optic nerve over macula"); }
     if (relPenalty) { s += relPenalty; if (relNote) why.push(relNote); }
-    if (s > 0) add("Central scotoma pattern (macula/optic nerve) (VF-based)", s, why);
+
+    if (s > 0) {
+      nextSteps.push("Check visual acuity and color vision (red desaturation)");
+      if (!f.hasRAPD) {
+        nextSteps.push("Examine for RAPD—if present, suggests optic nerve over macular cause");
+      }
+      nextSteps.push("Consider OCT RNFL/GCC and macular imaging");
+      if (f.painOnMovement) {
+        nextSteps.push("Pain on eye movement present: strongly consider optic neuritis—MRI orbits/brain");
+      } else {
+        nextSteps.push("If pain on eye movement: consider optic neuritis, may need MRI orbits/brain");
+      }
+    }
+    if (s > 0) add("Central scotoma pattern (macula/optic nerve) (VF-based)", s, why, nextSteps);
   }
 
   // Sort and return top list
@@ -261,23 +386,45 @@ export function compute(session) {
     };
   }
 
-  // Keep your urgent patterns (rare but important) as alerts, not as default top dx
-  if (features.dominance === "light" && (features.ptosis || features.diplopia) &&
+  // Urgency hierarchy: critical > danger > warn > info > none
+  // CRITICAL: Immediate action required (aneurysm, dissection)
+  if (features.dominance === "light" && features.ptosis &&
+    (features.acute || features.painful) && (features.diplopia || features.neuroSx)) {
+    urgency = {
+      level: "critical",
+      text: "CRITICAL: Pattern suggests compressive CN III palsy. Strongly consider emergent CTA/MRA head to exclude aneurysm (especially PComm)."
+    };
+  } else if (features.dominance === "dark" && (features.acute && features.painful) &&
+    (features.dilationLag || features.ptosis || features.anhidrosis)) {
+    urgency = {
+      level: "critical",
+      text: "CRITICAL: Acute painful Horner syndrome. Strongly consider emergent carotid imaging (CTA/MRA) to exclude dissection."
+    };
+  }
+  // DANGER: High concern, urgent workup
+  else if (features.dominance === "light" && (features.ptosis || features.diplopia) &&
     (features.acute || features.painful || features.neuroSx)) {
     urgency = {
       level: "danger",
-      text: "High concern: large pupil pattern with acute/pain/neuro + ptosis/diplopia."
+      text: "High concern: Large pupil pattern with acute/pain/neuro + ptosis/diplopia. Consider compressive CN III—imaging may be indicated."
     };
   } else if (features.dominance === "dark" && (features.dilationLag || features.ptosis || features.anhidrosis) &&
     (features.acute || features.painful || features.neuroSx)) {
     urgency = {
       level: "warn",
-      text: "Elevated concern: small pupil pattern with acute/pain/neuro + supportive sympathetic signs."
+      text: "Elevated concern: Small pupil pattern with acute/pain/neuro + supportive sympathetic signs. Consider Horner workup including vascular imaging if acute."
     };
-  } else if (features.vf_bitemporal && features.vf_reliability !== "poor") {
+  }
+  // INFO: Notable patterns requiring attention
+  else if (features.vf_bitemporal && features.vf_reliability !== "poor") {
     urgency = {
       level: "info",
-      text: "VF pattern flagged: bitemporal/vertical-meridian patterns raise chiasmal considerations (confirm reliability and pattern)."
+      text: "VF pattern flagged: Bitemporal pattern raises chiasmal considerations. Strongly consider MRI pituitary if confirmed."
+    };
+  } else if (features.vf_homonymous && features.acute) {
+    urgency = {
+      level: "warn",
+      text: "Acute homonymous field defect: Consider stroke protocol. Check last known well time and vascular risk factors."
     };
   } else if (features.acute || features.painful || features.neuroSx) {
     urgency = {

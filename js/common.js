@@ -25,7 +25,9 @@ const defaultSession = () => ({
     lightNearDissociation: false,
     vermiform: false,
     anticholinergicExposure: false,
-    sympathomimeticExposure: false
+    sympathomimeticExposure: false,
+    rapdOD: "",   // "", "none", "1+", "2+", "3+", "4+"
+    rapdOS: ""    // "", "none", "1+", "2+", "3+", "4+"
   },
   eom: {
     diplopia: false,
@@ -34,6 +36,8 @@ const defaultSession = () => ({
     abductionDeficit: null,     // true/false/null
     adductionDeficit: null,     // true/false/null
     verticalLimitation: null,   // true/false/null
+    fatigable: false,           // MG screening
+    painOnMovement: false,      // orbital/inflammatory
     notes: ""
   },
   visualFields: {
