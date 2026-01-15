@@ -460,14 +460,35 @@ export function scoreDifferential(f) {
   // 1. Physiologic anisocoria
   // Reference: Loewenfeld IE. The Pupil: Anatomy, Physiology, and Clinical Applications.
   // ~20% of population has >0.4mm anisocoria; typically stable in light/dark
+  // CRITICAL: Only diagnose when we have COMPLETE pupil data (both light AND dark)
+  // and the anisocoria is minimal and stable across lighting conditions
   {
     let s = 0; const why = [];
-    const hasAnyPupilMeasure = (f.anisL !== null) || (f.anisD !== null);
 
-    if (hasAnyPupilMeasure) {
-      if (f.dominance === null) {
+    // MUST have BOTH light AND dark measurements to call physiologic anisocoria
+    // Otherwise we cannot assess stability across lighting conditions
+    const hasBothConditions = (f.anisL !== null) && (f.anisD !== null);
+
+    if (hasBothConditions) {
+      // Check for stable, minimal anisocoria: either both below threshold OR equal in both conditions
+      const bothBelowThreshold = f.anisL < CONFIG.ANISO_THRESHOLD_MM && f.anisD < CONFIG.ANISO_THRESHOLD_MM;
+      const stableAnisocoria = f.dominance === "equal" || (f.dominance === null && bothBelowThreshold);
+      // Also check that the difference between light and dark anisocoria is small (<0.3mm)
+      const anisocoriaChange = Math.abs(f.anisL - f.anisD);
+      const stableAcrossConditions = anisocoriaChange < 0.3;
+
+      if (stableAnisocoria || (bothBelowThreshold && stableAcrossConditions)) {
         s += 3;
-        why.push(`Anisocoria <${CONFIG.ANISO_THRESHOLD_MM} mm or equal in light/dark`);
+        if (bothBelowThreshold) {
+          why.push(`Anisocoria <${CONFIG.ANISO_THRESHOLD_MM}mm in both light and dark`);
+        } else {
+          why.push("Anisocoria stable/equal in light vs dark");
+        }
+
+        if (stableAcrossConditions && f.anisL > 0 && f.anisD > 0) {
+          s += 2;
+          why.push(`Anisocoria change of only ${anisocoriaChange.toFixed(1)}mm between conditions (stable)`);
+        }
 
         if (!f.acute && !f.painful && !f.neuroSx && !f.diplopia && !f.ptosis) {
           s += 2;
@@ -480,6 +501,11 @@ export function scoreDifferential(f) {
         if (!f.hasRAPD) {
           s += 1;
           why.push("No RAPD (rules out significant afferent defect)");
+        }
+        // Additional: no sympathetic or parasympathetic signs
+        if (!f.dilationLag && !f.anhidrosis && !f.lnd && !f.vermiform) {
+          s += 1;
+          why.push("No pathologic pupil signs (dilation lag, LND, vermiform)");
         }
       }
     }
@@ -1666,9 +1692,863 @@ export function scoreDifferential(f) {
     ], "neuro");
   }
 
+  // =====================================
+  // ORBITAL AND THYROID CONDITIONS
+  // =====================================
+
+  // 32. Thyroid Eye Disease (Graves' ophthalmopathy)
+  // Reference: Bartalena L, et al. Consensus statement of the European Group on Graves' orbitopathy (EUGOGO).
+  // Restrictive myopathy, proptosis, lid retraction, exposure keratopathy
+  {
+    let s = 0; const why = [];
+
+    if (f.diplopia) {
+      s += 2;
+      why.push("Diplopia present");
+    }
+    // Restrictive pattern - typically affects IR first (limitation of upgaze)
+    if (f.verticalLimitation === true) {
+      s += 3;
+      why.push("Vertical limitation (IR restriction causes upgaze limitation)");
+    }
+    // Comitant or near-comitant (restrictive, not neurogenic)
+    if (f.comitant === true) {
+      s += 2;
+      why.push("Comitant deviation (suggests restrictive rather than neurogenic)");
+    }
+    if (f.painOnMovement) {
+      s += 2;
+      why.push("Pain on eye movement (active inflammatory phase)");
+    }
+    // Pupil-sparing
+    if (!largePattern && !smallPattern && f.diplopia) {
+      s += 1;
+      why.push("Pupil-sparing");
+    }
+    // Ptosis is unusual (lid retraction more common, but can have pseudo-ptosis)
+    if (f.ptosis) {
+      s -= 1;
+      why.push("Note: Ptosis unusual in TED (lid retraction typical)");
+    }
+
+    if (s >= 4) add("Thyroid Eye Disease (Graves')", s, why, [
+      "Exam: proptosis (Hertel), lid retraction, lagophthalmos, conjunctival injection",
+      "Check thyroid function: TSH, free T4, T3, TSH receptor antibodies",
+      "CT orbits: enlarged extraocular muscles with tendon sparing",
+      "Pattern: IR > MR > SR > LR (mnemonic: I'M SLow)",
+      "Active vs inactive: CAS (Clinical Activity Score)",
+      "Mild: lubricants, selenium; Moderate-severe: IV steroids, orbital radiation, surgery"
+    ], "eom");
+  }
+
+  // 33. Orbital inflammatory disease (Idiopathic orbital inflammation / Orbital pseudotumor)
+  // Reference: Yuen SJ, Rubin PA. Idiopathic orbital inflammation.
+  // Painful ophthalmoplegia, proptosis, chemosis
+  {
+    let s = 0; const why = [];
+
+    if (f.painOnMovement) {
+      s += 4;
+      why.push("Pain on eye movement (hallmark of orbital inflammation)");
+    }
+    if (f.painful) {
+      s += 2;
+      why.push("Pain/headache present");
+    }
+    if (f.diplopia) {
+      s += 2;
+      why.push("Diplopia (myositis component)");
+    }
+    if (f.acute) {
+      s += 1;
+      why.push("Acute onset");
+    }
+    // Can affect any EOM
+    if ((f.abductionDeficit === true ? 1 : 0) +
+        (f.adductionDeficit === true ? 1 : 0) +
+        (f.verticalLimitation === true ? 1 : 0) >= 1) {
+      s += 1;
+      why.push("EOM limitation present");
+    }
+
+    if (s >= 5) add("Orbital inflammatory disease (pseudotumor)", s, why, [
+      "Exam: proptosis, chemosis, injection, restricted motility, pain",
+      "CT/MRI orbits with contrast: enhancing mass, may involve any orbital structure",
+      "Subtypes: myositis, dacryoadenitis, diffuse, apical",
+      "Dramatic response to corticosteroids (diagnostic and therapeutic)",
+      "If poor steroid response: biopsy to exclude lymphoma, IgG4-related disease",
+      "Rule out: thyroid eye disease, lymphoma, sarcoidosis, granulomatosis"
+    ], "eom");
+  }
+
+  // 34. Cavernous sinus syndrome
+  // Reference: Keane JR. Cavernous sinus syndrome.
+  // Multiple cranial neuropathies (III, IV, VI, V1, V2), may have Horner
+  {
+    let s = 0; const why = [];
+
+    // Multiple CN involvement
+    const cnCount = (largePattern ? 1 : 0) + (f.ptosis ? 1 : 0) +
+      (f.abductionDeficit === true ? 1 : 0) +
+      (f.adductionDeficit === true ? 1 : 0) +
+      (f.verticalLimitation === true ? 1 : 0);
+    if (cnCount >= 2) {
+      s += 4;
+      why.push("Multiple cranial nerve involvement");
+    }
+    if (f.diplopia && f.ptosis) {
+      s += 2;
+      why.push("Diplopia + ptosis");
+    }
+    if (f.painful) {
+      s += 2;
+      why.push("Pain (V1/V2 involvement or mass effect)");
+    }
+    // Horner can occur (sympathetic fibers travel through cavernous sinus)
+    if (smallPattern) {
+      s += 2;
+      why.push("Small pupil pattern (sympathetic involvement in cavernous sinus)");
+    }
+    if (f.acute) {
+      s += 1;
+      why.push("Acute onset");
+    }
+
+    if (s >= 5) add("Cavernous sinus syndrome", s, why, [
+      "Structures in cavernous sinus: CN III, IV, VI, V1, V2, sympathetics, ICA",
+      "MRI brain with attention to cavernous sinus, fat-saturated T1 with contrast",
+      "Etiologies: tumor (meningioma, pituitary), infection, CCF, thrombosis, Tolosa-Hunt",
+      "Check for proptosis, conjunctival injection (CCF), facial sensory loss (V1/V2)",
+      "If infectious: emergent - can spread from sinusitis",
+      "Tolosa-Hunt: painful ophthalmoplegia, responds to steroids"
+    ], "neuro");
+  }
+
+  // 35. Orbital apex syndrome
+  // Reference: Yeh S, Foroozan R. Orbital apex syndrome.
+  // Cavernous sinus findings PLUS optic neuropathy
+  {
+    let s = 0; const why = [];
+
+    // Optic nerve involvement differentiates from pure cavernous sinus
+    if (f.hasRAPD) {
+      s += 4;
+      why.push("RAPD (optic nerve involvement - key feature)");
+    }
+    if (f.discPallor || f.discEdema) {
+      s += 2;
+      why.push("Disc changes (pallor or edema)");
+    }
+    if (f.colorDeficit || f.vaReduced) {
+      s += 2;
+      why.push("Visual function affected (color/VA)");
+    }
+    // Plus cavernous sinus features
+    if (f.diplopia) {
+      s += 2;
+      why.push("Diplopia (EOM involvement)");
+    }
+    if (f.painful) {
+      s += 2;
+      why.push("Pain");
+    }
+    if (f.ptosis) {
+      s += 1;
+      why.push("Ptosis");
+    }
+
+    if (s >= 6) add("Orbital apex syndrome", s, why, [
+      "Orbital apex = cavernous sinus syndrome + optic neuropathy",
+      "CN II, III, IV, VI, V1 all affected",
+      "MRI orbits and brain with contrast, fat suppression",
+      "Etiologies: tumor, infection (mucormycosis in diabetics), inflammation",
+      "If diabetic with sinusitis: consider mucormycosis (EMERGENT)",
+      "Visual prognosis depends on prompt treatment"
+    ], "neuro");
+  }
+
+  // =====================================
+  // ADDITIONAL PUPIL CONDITIONS
+  // =====================================
+
+  // 36. Episodic unilateral mydriasis (benign)
+  // Reference: Jacobson DM. Benign episodic unilateral mydriasis.
+  // Intermittent dilated pupil, often with headache, no other deficits
+  {
+    let s = 0; const why = [];
+
+    if (largePattern) {
+      s += 2;
+      why.push("Large pupil pattern");
+    }
+    // Typically reactive (unlike CN III or pharmacologic)
+    if (!f.anyFixedPupil && largePattern) {
+      s += 2;
+      why.push("Pupil still reactive (distinguishes from fixed pathology)");
+    }
+    // No EOM involvement
+    if (!f.diplopia && !f.ptosis && largePattern) {
+      s += 3;
+      why.push("No diplopia or ptosis (isolated pupil finding)");
+    }
+    // May have headache
+    if (f.painful && largePattern && !f.ptosis && !f.diplopia) {
+      s += 1;
+      why.push("Headache present (common association)");
+    }
+    // No neuro symptoms
+    if (!f.neuroSx && largePattern) {
+      s += 1;
+      why.push("No neurological symptoms");
+    }
+
+    if (s >= 6) add("Benign episodic unilateral mydriasis", s, why, [
+      "Intermittent episodes of unilateral pupil dilation",
+      "Pupil typically reactive during episodes",
+      "Associated with migraine in many cases",
+      "No ptosis, no diplopia, no other neurological signs",
+      "Diagnosis of exclusion - rule out CN III pathology first",
+      "Reassurance appropriate if workup negative"
+    ], "pupil");
+  }
+
+  // 37. Tadpole pupil
+  // Reference: Thompson HS, Zackon DH, Czarnecki JS. Tadpole-shaped pupils.
+  // Segmental iris dilator spasm, association with Horner
+  {
+    let s = 0; const why = [];
+
+    if (smallPattern || f.dilationLag) {
+      s += 3;
+      why.push("Small pupil pattern or dilation lag (associated Horner)");
+    }
+    // Typically intermittent
+    if (!f.acute && (smallPattern || f.dilationLag)) {
+      s += 1;
+      why.push("Chronic/intermittent pattern");
+    }
+
+    if (s >= 3) add("Tadpole pupil (consider)", s, why, [
+      "Segmental iris dilator muscle spasm causing peaked pupil",
+      "Often associated with underlying Horner syndrome",
+      "Transient distortion of pupil shape",
+      "Check for signs of Horner: ptosis, anhidrosis, dilation lag",
+      "If Horner confirmed: standard Horner workup indicated"
+    ], "pupil");
+  }
+
+  // =====================================
+  // ADDITIONAL EOM/MOTILITY CONDITIONS
+  // =====================================
+
+  // 38. Internuclear ophthalmoplegia (INO)
+  // Reference: Keane JR. Internuclear ophthalmoplegia.
+  // Adduction deficit with contralateral abducting nystagmus
+  {
+    let s = 0; const why = [];
+
+    if (f.adductionDeficit === true) {
+      s += 5;
+      why.push("Adduction deficit (hallmark of INO)");
+    }
+    if (f.diplopia && f.adductionDeficit === true) {
+      s += 2;
+      why.push("Diplopia with adduction deficit");
+    }
+    // Ptosis absent
+    if (!f.ptosis && f.adductionDeficit === true) {
+      s += 2;
+      why.push("No ptosis (distinguishes from CN III)");
+    }
+    // Pupil-sparing
+    if (!largePattern && !smallPattern && f.adductionDeficit === true) {
+      s += 2;
+      why.push("Pupil-sparing (distinguishes from CN III)");
+    }
+    // Incomitant
+    if (f.comitant === false && f.adductionDeficit === true) {
+      s += 1;
+      why.push("Incomitant deviation");
+    }
+
+    if (s >= 6) add("Internuclear ophthalmoplegia (INO)", s, why, [
+      "Lesion in MLF (medial longitudinal fasciculus)",
+      "Test convergence: typically preserved in INO (distinguishes from CN III)",
+      "Look for contralateral abducting nystagmus",
+      "Young patient: multiple sclerosis (bilateral INO common)",
+      "Older patient: stroke (usually unilateral)",
+      "MRI brain with attention to brainstem/MLF"
+    ], "eom");
+  }
+
+  // 39. Duane retraction syndrome
+  // Reference: DeRespinis PA, et al. Duane's retraction syndrome.
+  // Congenital, limited abduction, globe retraction on adduction
+  {
+    let s = 0; const why = [];
+
+    if (f.abductionDeficit === true) {
+      s += 3;
+      why.push("Abduction deficit");
+    }
+    // Usually not acute
+    if (!f.acute && f.abductionDeficit === true) {
+      s += 2;
+      why.push("Non-acute presentation (congenital)");
+    }
+    // No pain
+    if (!f.painful && f.abductionDeficit === true) {
+      s += 1;
+      why.push("Painless");
+    }
+    // Pupil-sparing
+    if (!largePattern && !smallPattern && f.abductionDeficit === true) {
+      s += 1;
+      why.push("Pupil-sparing");
+    }
+    // No diplopia in primary (often)
+    if (!f.diplopia && f.abductionDeficit === true) {
+      s += 1;
+      why.push("No diplopia in primary gaze");
+    }
+
+    if (s >= 5) add("Duane retraction syndrome (consider)", s, why, [
+      "Congenital CN VI aplasia with aberrant CN III innervation to LR",
+      "Type I (most common): limited abduction",
+      "Type II: limited adduction; Type III: limited both",
+      "Globe retraction and palpebral fissure narrowing on adduction",
+      "Usually unilateral (left > right), female predominance",
+      "Face turn toward affected side to maintain binocularity",
+      "No treatment needed if aligned in primary; surgery for large deviation"
+    ], "eom");
+  }
+
+  // 40. Brown syndrome
+  // Reference: Wright KW. Brown's syndrome: diagnosis and management.
+  // Limited elevation in adduction
+  {
+    let s = 0; const why = [];
+
+    if (f.verticalLimitation === true) {
+      s += 3;
+      why.push("Vertical limitation");
+    }
+    // Usually painless (unless inflammatory)
+    if (!f.painful && f.verticalLimitation === true) {
+      s += 1;
+      why.push("Painless (congenital type)");
+    }
+    if (f.painOnMovement && f.verticalLimitation === true) {
+      s += 2;
+      why.push("Pain on movement (acquired/inflammatory type)");
+    }
+    // No ptosis, pupil-sparing
+    if (!f.ptosis && f.verticalLimitation === true) {
+      s += 1;
+      why.push("No ptosis");
+    }
+
+    if (s >= 4) add("Brown syndrome (consider)", s, why, [
+      "Restricted SO tendon: limited elevation in adduction",
+      "Positive forced duction test",
+      "Congenital: usually stable, observe if small",
+      "Acquired: RA, trauma, sinus surgery, inflammation around trochlea",
+      "Inflammatory: may respond to steroids or NSAIDs",
+      "Surgery if significant hypotropia in primary gaze"
+    ], "eom");
+  }
+
+  // 41. Ocular neuromyotonia
+  // Reference: Yee RD, et al. Ocular neuromyotonia.
+  // Episodic sustained EOM contraction, often after radiation
+  {
+    let s = 0; const why = [];
+
+    if (f.diplopia) {
+      s += 2;
+      why.push("Diplopia present");
+    }
+    // Episodic/intermittent pattern suggested by non-constant symptoms
+    if ((f.abductionDeficit === true || f.adductionDeficit === true || f.verticalLimitation === true)) {
+      s += 2;
+      why.push("EOM deficit present");
+    }
+    // No pain typically
+    if (!f.painful && f.diplopia) {
+      s += 1;
+      why.push("Painless");
+    }
+
+    if (s >= 4) add("Ocular neuromyotonia (consider)", s, why, [
+      "Episodic sustained contraction of EOM (spasm)",
+      "Often history of parasellar radiation or skull base surgery",
+      "Triggered by sustained gaze in direction of action of affected muscle",
+      "Lasts seconds to minutes",
+      "Treatment: carbamazepine or other membrane stabilizers",
+      "MRI to evaluate prior treatment site"
+    ], "eom");
+  }
+
+  // =====================================
+  // ADDITIONAL OPTIC NERVE CONDITIONS
+  // =====================================
+
+  // 42. Papilledema (increased ICP)
+  // Reference: Friedman DI, et al. Revised diagnostic criteria for pseudotumor cerebri syndrome.
+  // Bilateral disc edema from elevated ICP
+  {
+    let s = 0; const why = [];
+
+    if (f.discEdema) {
+      s += 4;
+      why.push("Disc edema present");
+    }
+    // Usually bilateral
+    if (f.discEdemaOD && f.discEdemaOS) {
+      s += 2;
+      why.push("Bilateral disc edema");
+    }
+    // No RAPD initially (both eyes affected equally)
+    if (!f.hasRAPD && f.discEdema) {
+      s += 2;
+      why.push("No RAPD (symmetric involvement)");
+    }
+    // Headache common
+    if (f.painful && f.discEdema) {
+      s += 2;
+      why.push("Headache present");
+    }
+    // Transient visual obscurations (VF symptoms)
+    if (f.vf_symptoms && f.discEdema) {
+      s += 1;
+      why.push("Visual symptoms");
+    }
+
+    if (s >= 5) add("Papilledema (elevated ICP)", s, why, [
+      "Bilateral disc edema from increased intracranial pressure",
+      "MRI brain + MRV to rule out mass, venous sinus thrombosis",
+      "LP with opening pressure (after imaging rules out mass)",
+      "IIH criteria: elevated OP >25cm H2O, normal CSF, no other cause",
+      "IIH risk factors: obesity, young woman, vitamin A, tetracyclines",
+      "Monitor visual fields - can cause progressive optic neuropathy",
+      "Treatment: weight loss, acetazolamide, topiramate; shunt/ONSF if severe"
+    ], "optic");
+  }
+
+  // 43. Anterior ischemic optic neuropathy - Non-arteritic (NAION) - already exists but enhance
+  // 44. Leber hereditary optic neuropathy (LHON)
+  // Reference: Yu-Wai-Man P, et al. Leber hereditary optic neuropathy.
+  // Maternal inheritance, sequential bilateral painless vision loss, young males
+  {
+    let s = 0; const why = [];
+
+    if (f.hasRAPD) {
+      s += 2;
+      why.push("RAPD present");
+    }
+    if (f.vf_central_scotoma) {
+      s += 3;
+      why.push("Central scotoma");
+    }
+    if (f.discEdema && !f.painful) {
+      s += 2;
+      why.push("Disc edema/hyperemia without pain");
+    }
+    if (f.colorDeficit) {
+      s += 2;
+      why.push("Color vision deficit");
+    }
+    // Painless
+    if (!f.painful && (f.hasRAPD || f.vf_central_scotoma || f.colorDeficit)) {
+      s += 1;
+      why.push("Painless (typical for LHON)");
+    }
+
+    if (s >= 5) add("Leber hereditary optic neuropathy (LHON)", s, why, [
+      "Mitochondrial DNA mutations (most common: 11778, 3460, 14484)",
+      "Typical: young male with painless sequential vision loss",
+      "Exam: circumpapillary telangiectatic vessels, pseudoedema",
+      "No disc leakage on FA (distinguishes from true papillitis)",
+      "Maternal inheritance pattern - ask family history",
+      "Genetic testing for mtDNA mutations",
+      "Idebenone may help if started early; avoid smoking, alcohol"
+    ], "optic");
+  }
+
+  // 45. Dominant optic atrophy (DOA / Kjer type)
+  // Reference: Votruba M, et al. Clinical features of autosomal dominant optic atrophy.
+  {
+    let s = 0; const why = [];
+
+    if (f.discPallor) {
+      s += 3;
+      why.push("Disc pallor (optic atrophy)");
+    }
+    if (f.colorDeficit) {
+      s += 2;
+      why.push("Color vision deficit (blue-yellow axis typically)");
+    }
+    if (f.vf_central_scotoma) {
+      s += 2;
+      why.push("Central/cecocentral scotoma");
+    }
+    // Bilateral, symmetric
+    if (f.discPallorOD && f.discPallorOS) {
+      s += 2;
+      why.push("Bilateral optic atrophy");
+    }
+    // Chronic, painless
+    if (!f.acute && !f.painful && f.discPallor) {
+      s += 1;
+      why.push("Chronic, painless course");
+    }
+
+    if (s >= 5) add("Dominant optic atrophy (DOA)", s, why, [
+      "OPA1 gene mutation (autosomal dominant)",
+      "Onset typically in first decade, slowly progressive",
+      "Temporal disc pallor, reduced VA (often 20/40-20/200)",
+      "Blue-yellow color defects more than red-green",
+      "Central or cecocentral scotomas",
+      "Family history of vision loss (autosomal dominant)",
+      "Genetic testing for OPA1 mutations",
+      "No proven treatment; low vision rehabilitation"
+    ], "optic");
+  }
+
+  // 46. Toxic/Nutritional optic neuropathy
+  // Reference: Sharma P, Sharma R. Toxic optic neuropathy.
+  {
+    let s = 0; const why = [];
+
+    if (f.vf_central_scotoma) {
+      s += 3;
+      why.push("Central/cecocentral scotoma");
+    }
+    if (f.colorDeficit) {
+      s += 2;
+      why.push("Color vision deficit");
+    }
+    if (f.discPallor) {
+      s += 2;
+      why.push("Disc pallor");
+    }
+    // Bilateral, symmetric
+    if ((f.colorDeficitOD && f.colorDeficitOS) || (f.discPallorOD && f.discPallorOS)) {
+      s += 2;
+      why.push("Bilateral, symmetric involvement");
+    }
+    // Painless, subacute
+    if (!f.painful) {
+      s += 1;
+      why.push("Painless");
+    }
+
+    if (s >= 5) add("Toxic/Nutritional optic neuropathy", s, why, [
+      "Common toxins: ethambutol, methanol, ethylene glycol, linezolid",
+      "Nutritional: B12, folate, thiamine, copper deficiency",
+      "Tobacco-alcohol amblyopia (B12/folate related)",
+      "Labs: B12, folate, MMA, homocysteine, CBC, copper, zinc",
+      "Cecocentral scotoma typical (involves fixation and blind spot)",
+      "Stop offending agent; replete deficiencies",
+      "Recovery depends on duration and severity"
+    ], "optic");
+  }
+
+  // 47. Optic disc drusen
+  // Reference: Auw-Haedrich C, et al. Optic disk drusen.
+  {
+    let s = 0; const why = [];
+
+    // VF defects without other concerning features
+    if ((f.vf_altitudinal || f.vf_respects_horizontal) && !f.hasRAPD) {
+      s += 3;
+      why.push("Arcuate/altitudinal VF defect without RAPD");
+    }
+    // No RAPD despite VF loss (or minimal)
+    if (!f.significantRAPD && (f.vf_altitudinal || f.vf_symptoms)) {
+      s += 2;
+      why.push("No significant RAPD despite VF changes");
+    }
+    // Chronic, stable, no pain
+    if (!f.acute && !f.painful) {
+      s += 1;
+      why.push("Chronic, stable course");
+    }
+    // Disc appears elevated but not true edema
+    if (!f.discEdema && !f.discPallor) {
+      s += 1;
+      why.push("No true disc edema or pallor");
+    }
+
+    if (s >= 4) add("Optic disc drusen", s, why, [
+      "Calcified deposits in optic nerve head",
+      "Can cause pseudopapilledema or be buried (not visible)",
+      "VF defects: arcuate, enlarged blind spot, altitudinal",
+      "B-scan ultrasound: highly reflective lesions with shadowing",
+      "OCT: signal-poor core with hyperreflective margins (EDI-OCT)",
+      "Autofluorescence: drusen autofluoresce",
+      "Usually benign; monitor VF for rare progressive loss"
+    ], "optic");
+  }
+
+  // =====================================
+  // RETINAL CONDITIONS MIMICKING OPTIC NERVE
+  // =====================================
+
+  // 48. Central/Branch retinal artery occlusion
+  // Reference: Hayreh SS. Acute retinal arterial occlusive disorders.
+  {
+    let s = 0; const why = [];
+
+    if (f.hasRAPD) {
+      s += 3;
+      why.push("RAPD present");
+    }
+    if (f.acute) {
+      s += 3;
+      why.push("Acute onset");
+    }
+    if (f.vf_altitudinal && f.vf_laterality === "mono") {
+      s += 2;
+      why.push("Altitudinal or sectoral VF loss, monocular");
+    }
+    // Painless
+    if (!f.painful && f.acute && f.hasRAPD) {
+      s += 1;
+      why.push("Painless (typical for CRAO)");
+    }
+
+    if (s >= 5) add("Retinal artery occlusion (CRAO/BRAO)", s, why, [
+      "EMERGENT: Acute painless monocular vision loss",
+      "Fundus: retinal whitening, cherry red spot (CRAO), cattle-trucking",
+      "Time-sensitive: retinal tolerance ~90-120 minutes",
+      "Acute CRAO: consider ocular massage, AC paracentesis, IOP lowering",
+      "Workup: carotid imaging, echocardiogram, ESR (GCA if >50)",
+      "GCA: must rule out if age >50 (ESR/CRP, temporal artery biopsy)",
+      "Stroke workup indicated - embolic source evaluation"
+    ], "vf");
+  }
+
+  // 49. Central/Branch retinal vein occlusion
+  // Reference: The Central Vein Occlusion Study Group.
+  {
+    let s = 0; const why = [];
+
+    if (f.hasRAPD && f.acute) {
+      s += 3;
+      why.push("RAPD with acute onset");
+    }
+    if (f.discEdema && f.vf_laterality === "mono") {
+      s += 2;
+      why.push("Disc edema, monocular");
+    }
+    if (f.vf_symptoms && f.vf_laterality === "mono") {
+      s += 2;
+      why.push("Visual symptoms, monocular");
+    }
+    // Usually painless
+    if (!f.painful && f.acute) {
+      s += 1;
+      why.push("Painless");
+    }
+
+    if (s >= 5) add("Retinal vein occlusion (CRVO/BRVO)", s, why, [
+      "Fundus: dilated tortuous veins, hemorrhages, cotton wool spots, disc edema",
+      "CRVO: all quadrants; BRVO: distribution of affected vein",
+      "Check for macular edema (OCT) - treat with anti-VEGF",
+      "RAPD in ischemic CRVO indicates poor visual prognosis",
+      "Monitor for neovascularization (NVI, NVE, NVG)",
+      "Workup: HTN, DM, glaucoma, hypercoagulable states if young",
+      "Refer retina for anti-VEGF and/or PRP if ischemic"
+    ], "vf");
+  }
+
+  // 50. Acute zonal occult outer retinopathy (AZOOR)
+  // Reference: Gass JD. Acute zonal occult outer retinopathy.
+  {
+    let s = 0; const why = [];
+
+    if (f.vf_symptoms && f.vf_laterality === "mono") {
+      s += 2;
+      why.push("Visual symptoms, monocular");
+    }
+    // VF loss without proportionate fundus findings
+    if ((f.vf_altitudinal || f.vf_respects_horizontal) && !f.hasRAPD) {
+      s += 2;
+      why.push("VF defect without significant RAPD");
+    }
+    // Photopsia common
+    if (f.acute) {
+      s += 1;
+      why.push("Acute/subacute onset");
+    }
+
+    if (s >= 4) add("AZOOR (Acute zonal occult outer retinopathy)", s, why, [
+      "White dot syndrome family - photoreceptor dysfunction",
+      "Symptoms: photopsias, scotomas, visual field loss",
+      "Fundus often normal or minimal changes initially",
+      "ERG: reduced a-wave amplitude in affected zones",
+      "FAF: hyper/hypo-autofluorescence in affected areas",
+      "OCT: loss of ellipsoid zone (photoreceptor damage)",
+      "Usually stabilizes; may have recurrences"
+    ], "vf");
+  }
+
+  // =====================================
+  // ADDITIONAL NEUROLOGICAL CONDITIONS
+  // =====================================
+
+  // 51. Parinaud syndrome (dorsal midbrain syndrome)
+  // Reference: Keane JR. The pretectal syndrome.
+  // Upgaze palsy, light-near dissociation, convergence-retraction nystagmus
+  {
+    let s = 0; const why = [];
+
+    if (f.verticalLimitation === true) {
+      s += 3;
+      why.push("Vertical gaze limitation (upgaze palsy)");
+    }
+    if (f.lnd) {
+      s += 4;
+      why.push("Light-near dissociation");
+    }
+    // Pupils mid-dilated
+    if (largePattern && f.lnd) {
+      s += 2;
+      why.push("Large pupils with LND (Parinaud pattern)");
+    }
+    if (f.neuroSx) {
+      s += 1;
+      why.push("Neurological symptoms");
+    }
+
+    if (s >= 5) add("Parinaud syndrome (dorsal midbrain)", s, why, [
+      "Dorsal midbrain lesion at level of superior colliculus",
+      "Classic findings: upgaze palsy, LND, lid retraction (Collier sign)",
+      "Convergence-retraction nystagmus on attempted upgaze",
+      "Etiologies: pineal tumor, stroke, MS, hydrocephalus",
+      "MRI brain with attention to posterior commissure, pineal region",
+      "If hydrocephalus: may need shunting"
+    ], "neuro");
+  }
+
+  // 52. Progressive supranuclear palsy (PSP)
+  // Reference: Litvan I, et al. Clinical research criteria for PSP.
+  // Vertical gaze palsy, postural instability, parkinsonism
+  {
+    let s = 0; const why = [];
+
+    if (f.verticalLimitation === true) {
+      s += 3;
+      why.push("Vertical gaze limitation (especially downgaze)");
+    }
+    // No pupil involvement
+    if (!largePattern && !smallPattern && f.verticalLimitation === true) {
+      s += 1;
+      why.push("Pupil-sparing");
+    }
+    if (f.neuroSx) {
+      s += 2;
+      why.push("Neurological symptoms (postural instability, falls)");
+    }
+    // Chronic, progressive
+    if (!f.acute && f.verticalLimitation === true) {
+      s += 1;
+      why.push("Chronic progressive course");
+    }
+
+    if (s >= 5) add("Progressive supranuclear palsy (PSP)", s, why, [
+      "Neurodegenerative: tau protein accumulation",
+      "Vertical gaze palsy (downgaze > upgaze initially)",
+      "Square wave jerks, slowed saccades",
+      "Postural instability with backward falls",
+      "Pseudobulbar affect, dysarthria, dysphagia",
+      "MRI: hummingbird sign (midbrain atrophy), Mickey Mouse sign",
+      "Neurology referral; supportive care, fall prevention"
+    ], "neuro");
+  }
+
+  // 53. Skew deviation
+  // Reference: Brandt T, Dieterich M. Skew deviation.
+  // Vertical misalignment from brainstem/cerebellar lesion
+  {
+    let s = 0; const why = [];
+
+    if (f.verticalLimitation === true && f.diplopia) {
+      s += 3;
+      why.push("Vertical diplopia with vertical deviation");
+    }
+    // Comitant or near-comitant (unlike CN IV)
+    if (f.comitant === true && f.diplopia) {
+      s += 2;
+      why.push("Comitant vertical deviation (unlike CN IV palsy)");
+    }
+    if (f.neuroSx) {
+      s += 2;
+      why.push("Neurological symptoms (brainstem/cerebellar)");
+    }
+    if (f.acute) {
+      s += 2;
+      why.push("Acute onset");
+    }
+
+    if (s >= 5) add("Skew deviation", s, why, [
+      "Vertical misalignment from brainstem/cerebellar/vestibular lesion",
+      "Comitant (same in all gazes) - unlike CN IV palsy",
+      "Often part of ocular tilt reaction (head tilt, skew, torsion)",
+      "Differentiating from CN IV: head tilt test opposite (skew opposite to CN IV)",
+      "Associated with stroke, MS, or posterior fossa lesions",
+      "MRI brain with attention to brainstem and cerebellum"
+    ], "neuro");
+  }
+
+  // 54. Ocular myasthenia (expanded scoring)
+  // This enhances the existing MG entry with more specific features
+  // Already covered in #14, but ensure comprehensive coverage
+
+  // 55. Chronic progressive external ophthalmoplegia (CPEO)
+  // Reference: DiMauro S, et al. Mitochondrial myopathies.
+  {
+    let s = 0; const why = [];
+
+    if (f.ptosis) {
+      s += 3;
+      why.push("Ptosis present");
+    }
+    if (f.diplopia || (f.abductionDeficit === true || f.adductionDeficit === true || f.verticalLimitation === true)) {
+      s += 2;
+      why.push("EOM limitation");
+    }
+    // Bilateral, symmetric
+    if (f.ptosis && !f.fatigable) {
+      s += 2;
+      why.push("Non-fatigable (distinguishes from MG)");
+    }
+    // Chronic
+    if (!f.acute && f.ptosis) {
+      s += 2;
+      why.push("Chronic progressive course");
+    }
+    // No pupil involvement
+    if (!largePattern && !smallPattern && f.ptosis) {
+      s += 1;
+      why.push("Pupil-sparing");
+    }
+
+    if (s >= 6) add("Chronic progressive external ophthalmoplegia (CPEO)", s, why, [
+      "Mitochondrial myopathy affecting EOM and levator",
+      "Bilateral, symmetric ptosis and ophthalmoplegia",
+      "Slowly progressive over years; often no diplopia (symmetric)",
+      "May have orbicularis weakness, pigmentary retinopathy",
+      "Kearns-Sayre: CPEO + pigmentary retinopathy + heart block + onset <20",
+      "Genetic testing for mtDNA deletions",
+      "Cardiac evaluation important (heart block in KSS)"
+    ], "eom");
+  }
+
   // Sort by score descending, return top matches
   dx.sort((a, b) => b.score - a.score);
-  return dx.filter(d => d.score > 0).slice(0, 10);
+  return dx.filter(d => d.score > 0).slice(0, 12);
 }
 
 export function compute(session) {

@@ -563,6 +563,20 @@ select {
   background: rgba(110, 231, 183, 0.08);
 }
 
+.preset-btn--urgent {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.08);
+}
+
+.preset-btn--urgent .preset-icon {
+  color: var(--danger);
+}
+
+.preset-btn--urgent:hover {
+  border-color: var(--danger);
+  background: rgba(251, 113, 133, 0.15);
+}
+
 .preset-icon {
   font-size: 1.5rem;
   color: var(--accent);
@@ -724,16 +738,37 @@ select {
 }
 
 /* ===== EOM GRID ===== */
+.eom-dual-grid {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.eom-eye-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.eom-eye-section h4 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
 .eom-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 12px 0;
-  max-width: 300px;
+  gap: 6px;
+  max-width: 180px;
 }
 
 .eom-cell {
-  aspect-ratio: 1;
+  width: 55px;
+  height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -741,6 +776,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 10px;
   font-size: 0.75rem;
+  font-weight: 700;
   color: var(--muted);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -748,15 +784,17 @@ select {
 
 .eom-cell:hover {
   border-color: var(--accent);
+  background: rgba(110, 231, 183, 0.05);
 }
 
 .eom-cell.center {
   background: var(--card);
   cursor: default;
+  color: var(--text);
 }
 
 .eom-cell.deficit {
-  background: rgba(251, 113, 133, 0.15);
+  background: rgba(251, 113, 133, 0.2);
   border-color: var(--danger);
   color: var(--danger);
 }

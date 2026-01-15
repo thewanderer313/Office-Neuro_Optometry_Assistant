@@ -59,6 +59,11 @@
         <h2>Top Differential</h2>
         <div id="sbDx"></div>
       </section>
+
+      <section class="card">
+        <h2>Recommended Testing</h2>
+        <div id="sbTests"></div>
+      </section>
     </aside>
 
     <!-- MAIN -->
@@ -87,6 +92,24 @@
               <span class="preset-label">INO Pattern</span>
             </button>
           </div>
+          <div class="preset-row">
+            <button class="preset-btn" id="presetTED" title="Thyroid eye disease - restrictive">
+              <span class="preset-icon">⬆</span>
+              <span class="preset-label">TED / Graves</span>
+            </button>
+            <button class="preset-btn" id="presetSkew" title="Skew deviation - brainstem">
+              <span class="preset-icon">⇅</span>
+              <span class="preset-label">Skew Deviation</span>
+            </button>
+            <button class="preset-btn" id="presetCPEO" title="Chronic progressive external ophthalmoplegia">
+              <span class="preset-icon">○</span>
+              <span class="preset-label">CPEO</span>
+            </button>
+            <button class="preset-btn" id="presetParinaud" title="Dorsal midbrain syndrome">
+              <span class="preset-icon">▲</span>
+              <span class="preset-label">Parinaud</span>
+            </button>
+          </div>
         </div>
 
         <h3>Key symptoms</h3>
@@ -98,29 +121,44 @@
         </div>
 
         <h3>Motility Deficits</h3>
-        <div class="twoCol">
-          <div>
-            <h4 style="margin: 8px 0; color: var(--muted); font-size: 0.85rem;">Click to mark deficits:</h4>
-            <div class="eom-grid" id="eomGrid">
-              <div class="eom-cell" data-gaze="upleft" title="Up and Left">SR/IO</div>
-              <div class="eom-cell" data-gaze="up" title="Up">SR</div>
-              <div class="eom-cell" data-gaze="upright" title="Up and Right">SR/IO</div>
-              <div class="eom-cell" data-gaze="left" title="Left (Abduction)">LR</div>
-              <div class="eom-cell center" title="Primary">PP</div>
-              <div class="eom-cell" data-gaze="right" title="Right (Abduction)">LR</div>
-              <div class="eom-cell" data-gaze="downleft" title="Down and Left">IR/SO</div>
-              <div class="eom-cell" data-gaze="down" title="Down">IR</div>
-              <div class="eom-cell" data-gaze="downright" title="Down and Right">IR/SO</div>
+        <p class="small">Click cells to mark gaze limitations. View from examiner's perspective (patient's right is on your left).</p>
+
+        <div class="eom-dual-grid">
+          <div class="eom-eye-section">
+            <h4>OD (Right Eye)</h4>
+            <div class="eom-grid" id="eomGridOD" data-eye="OD">
+              <div class="eom-cell" data-gaze="upleft" title="Up and Left - IO">IO</div>
+              <div class="eom-cell" data-gaze="up" title="Up - SR">SR</div>
+              <div class="eom-cell" data-gaze="upright" title="Up and Right - SR">SR</div>
+              <div class="eom-cell" data-gaze="left" title="Left - LR (Abduction)">LR</div>
+              <div class="eom-cell center" title="Primary Position">PP</div>
+              <div class="eom-cell" data-gaze="right" title="Right - MR (Adduction)">MR</div>
+              <div class="eom-cell" data-gaze="downleft" title="Down and Left - SO">SO</div>
+              <div class="eom-cell" data-gaze="down" title="Down - IR">IR</div>
+              <div class="eom-cell" data-gaze="downright" title="Down and Right - IR">IR</div>
             </div>
           </div>
-          <div>
-            <h4 style="margin: 8px 0; color: var(--muted); font-size: 0.85rem;">Summary flags:</h4>
-            <div class="row" style="flex-direction: column; align-items: flex-start;">
-              <label class="check"><input type="checkbox" id="abductionDeficit"> Abduction deficit (CN VI)</label>
-              <label class="check"><input type="checkbox" id="adductionDeficit"> Adduction deficit (CN III/INO)</label>
-              <label class="check"><input type="checkbox" id="verticalLimitation"> Vertical limitation (CN III/IV)</label>
+          <div class="eom-eye-section">
+            <h4>OS (Left Eye)</h4>
+            <div class="eom-grid" id="eomGridOS" data-eye="OS">
+              <div class="eom-cell" data-gaze="upleft" title="Up and Left - SR">SR</div>
+              <div class="eom-cell" data-gaze="up" title="Up - SR">SR</div>
+              <div class="eom-cell" data-gaze="upright" title="Up and Right - IO">IO</div>
+              <div class="eom-cell" data-gaze="left" title="Left - MR (Adduction)">MR</div>
+              <div class="eom-cell center" title="Primary Position">PP</div>
+              <div class="eom-cell" data-gaze="right" title="Right - LR (Abduction)">LR</div>
+              <div class="eom-cell" data-gaze="downleft" title="Down and Left - IR">IR</div>
+              <div class="eom-cell" data-gaze="down" title="Down - IR">IR</div>
+              <div class="eom-cell" data-gaze="downright" title="Down and Right - SO">SO</div>
             </div>
           </div>
+        </div>
+
+        <h4 style="margin: 16px 0 8px; color: var(--muted); font-size: 0.85rem;">Summary Flags (auto-detected from grid or manually check):</h4>
+        <div class="row">
+          <label class="check"><input type="checkbox" id="abductionDeficit"> Abduction deficit (CN VI)</label>
+          <label class="check"><input type="checkbox" id="adductionDeficit"> Adduction deficit (CN III/INO)</label>
+          <label class="check"><input type="checkbox" id="verticalLimitation"> Vertical limitation (CN III/IV)</label>
         </div>
 
         <h3>Comitance</h3>

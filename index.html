@@ -60,6 +60,11 @@
         <h2>Top Differential</h2>
         <div id="sbDx"></div>
       </section>
+
+      <section class="card">
+        <h2>Recommended Testing</h2>
+        <div id="sbTests"></div>
+      </section>
     </aside>
 
     <!-- MAIN -->
@@ -113,6 +118,98 @@
           Then open: <code>http://localhost:8000/index.html</code>
         </div>
       </section>
+
+      <section class="card">
+        <h2>Test Scenarios</h2>
+        <div class="small">
+          Click a scenario to populate complete clinical data across all modules. This demonstrates how different findings
+          work together to generate and refine the differential diagnosis.
+        </div>
+
+        <h3>Urgent / Red Flag Scenarios</h3>
+        <div class="preset-row">
+          <button class="preset-btn preset-btn--urgent" id="scenarioAneurysm" title="Acute CN3 with pupil - aneurysm">
+            <span class="preset-icon">⚠</span>
+            <span class="preset-label">CN III Aneurysm</span>
+          </button>
+          <button class="preset-btn preset-btn--urgent" id="scenarioCarotid" title="Painful Horner - carotid dissection">
+            <span class="preset-icon">⚠</span>
+            <span class="preset-label">Carotid Dissection</span>
+          </button>
+          <button class="preset-btn preset-btn--urgent" id="scenarioGCA" title="AION in elderly - GCA">
+            <span class="preset-icon">⚠</span>
+            <span class="preset-label">Giant Cell Arteritis</span>
+          </button>
+          <button class="preset-btn preset-btn--urgent" id="scenarioStroke" title="Acute homonymous hemianopia">
+            <span class="preset-icon">⚠</span>
+            <span class="preset-label">Acute Stroke</span>
+          </button>
+        </div>
+
+        <h3>Common Presentations</h3>
+        <div class="preset-row">
+          <button class="preset-btn" id="scenarioPhysiologic" title="Normal variant anisocoria">
+            <span class="preset-icon">✓</span>
+            <span class="preset-label">Physiologic Aniso</span>
+          </button>
+          <button class="preset-btn" id="scenarioHorner" title="Classic Horner syndrome">
+            <span class="preset-icon">◐</span>
+            <span class="preset-label">Horner Syndrome</span>
+          </button>
+          <button class="preset-btn" id="scenarioAdie" title="Tonic pupil with areflexia">
+            <span class="preset-icon">○</span>
+            <span class="preset-label">Adie Tonic Pupil</span>
+          </button>
+          <button class="preset-btn" id="scenarioCN6" title="Isolated CN VI palsy">
+            <span class="preset-icon">←</span>
+            <span class="preset-label">CN VI Palsy</span>
+          </button>
+        </div>
+
+        <h3>Optic Nerve / Visual Pathway</h3>
+        <div class="preset-row">
+          <button class="preset-btn" id="scenarioOpticNeuritis" title="Typical optic neuritis">
+            <span class="preset-icon">●</span>
+            <span class="preset-label">Optic Neuritis</span>
+          </button>
+          <button class="preset-btn" id="scenarioNAION" title="Non-arteritic AION">
+            <span class="preset-icon">▬</span>
+            <span class="preset-label">NAION</span>
+          </button>
+          <button class="preset-btn" id="scenarioPituitary" title="Pituitary adenoma">
+            <span class="preset-icon">⬅➡</span>
+            <span class="preset-label">Pituitary Tumor</span>
+          </button>
+          <button class="preset-btn" id="scenarioPapilledema" title="IIH with papilledema">
+            <span class="preset-icon">⊛</span>
+            <span class="preset-label">Papilledema/IIH</span>
+          </button>
+        </div>
+
+        <h3>Neuromuscular / Complex</h3>
+        <div class="preset-row">
+          <button class="preset-btn" id="scenarioMG" title="Ocular myasthenia gravis">
+            <span class="preset-icon">⚡</span>
+            <span class="preset-label">Myasthenia Gravis</span>
+          </button>
+          <button class="preset-btn" id="scenarioTED" title="Thyroid eye disease">
+            <span class="preset-icon">⬆</span>
+            <span class="preset-label">Thyroid Eye Dz</span>
+          </button>
+          <button class="preset-btn" id="scenarioINO" title="INO from MS">
+            <span class="preset-icon">→</span>
+            <span class="preset-label">INO / MS</span>
+          </button>
+          <button class="preset-btn" id="scenarioCavernous" title="Cavernous sinus syndrome">
+            <span class="preset-icon">⊗</span>
+            <span class="preset-label">Cavernous Sinus</span>
+          </button>
+        </div>
+
+        <div class="btnRow" style="margin-top: 16px;">
+          <button class="ghost" id="scenarioClear">Clear All Data</button>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -123,7 +220,314 @@
 
   <script type="module">
     import { initSidebar } from "./js/sidebar.js";
+    import { sessionStore } from "./js/common.js";
+
     initSidebar("./index.html");
+
+    const $ = (id) => document.getElementById(id);
+
+    // ========================================
+    // COMPREHENSIVE TEST SCENARIOS
+    // Each scenario populates data across multiple modules
+    // ========================================
+
+    function applyScenario(type) {
+      // First reset the session
+      sessionStore.reset();
+
+      switch (type) {
+        // ======= URGENT SCENARIOS =======
+
+        case "aneurysm":
+          // Acute CN III with pupil involvement - posterior communicating artery aneurysm
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("triage.painful", true);
+          sessionStore.set("pupils.odLight", 6.5);
+          sessionStore.set("pupils.osLight", 3.0);
+          sessionStore.set("pupils.odDark", 7.0);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "none");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("eom.ptosis", true);
+          sessionStore.set("eom.diplopia", true);
+          sessionStore.set("eom.adductionDeficit", true);
+          sessionStore.set("eom.verticalLimitation", true);
+          sessionStore.set("eom.comitant", false);
+          sessionStore.set("eom.notes", "Complete CN III palsy with pupil involvement - urgent imaging required");
+          break;
+
+        case "carotid":
+          // Painful Horner - carotid dissection
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("triage.painful", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 2.5);
+          sessionStore.set("pupils.odDark", 6.0);
+          sessionStore.set("pupils.osDark", 4.0);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("pupils.dilationLag", true);
+          sessionStore.set("pupils.anhidrosis", true);
+          sessionStore.set("eom.ptosis", true);
+          sessionStore.set("eom.notes", "Acute painful Horner - carotid dissection until proven otherwise");
+          break;
+
+        case "gca":
+          // Giant Cell Arteritis with AION
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("triage.painful", true);
+          sessionStore.set("triage.neuroSx", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("pupils.rapdOD", "3+");
+          sessionStore.set("opticNerve.discEdemaOD", true);
+          sessionStore.set("opticNerve.vaReducedOD", true);
+          sessionStore.set("opticNerve.colorDeficitOD", true);
+          sessionStore.set("visualFields.altitudinal", true);
+          sessionStore.set("visualFields.respectsHorizontalMeridian", true);
+          sessionStore.set("visualFields.laterality", "mono");
+          sessionStore.set("visualFields.newDefect", true);
+          sessionStore.set("visualFields.complaint", true);
+          break;
+
+        case "stroke":
+          // Acute homonymous hemianopia - posterior circulation stroke
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("triage.neuroSx", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("visualFields.homonymous", true);
+          sessionStore.set("visualFields.respectsVerticalMeridian", true);
+          sessionStore.set("visualFields.laterality", "binocular");
+          sessionStore.set("visualFields.newDefect", true);
+          sessionStore.set("visualFields.complaint", true);
+          sessionStore.set("visualFields.congruity", "high");
+          sessionStore.set("visualFields.reliability", "good");
+          break;
+
+        // ======= COMMON SCENARIOS =======
+
+        case "physiologic":
+          // Physiologic anisocoria - normal variant
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.1);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.1);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          break;
+
+        case "horner":
+          // Classic Horner syndrome
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 2.5);
+          sessionStore.set("pupils.odDark", 6.0);
+          sessionStore.set("pupils.osDark", 4.0);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("pupils.dilationLag", true);
+          sessionStore.set("eom.ptosis", true);
+          break;
+
+        case "adie":
+          // Adie tonic pupil
+          sessionStore.set("pupils.odLight", 5.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 6.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "sluggish");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("pupils.lightNearDissociation", true);
+          sessionStore.set("pupils.vermiform", true);
+          break;
+
+        case "cn6":
+          // Isolated CN VI palsy
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("eom.diplopia", true);
+          sessionStore.set("eom.abductionDeficit", true);
+          sessionStore.set("eom.comitant", false);
+          break;
+
+        // ======= OPTIC NERVE / VISUAL PATHWAY =======
+
+        case "opticNeuritis":
+          // Typical optic neuritis
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("triage.painful", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("pupils.rapdOD", "2+");
+          sessionStore.set("opticNerve.colorDeficitOD", true);
+          sessionStore.set("opticNerve.vaReducedOD", true);
+          sessionStore.set("eom.painOnMovement", true);
+          sessionStore.set("visualFields.centralScotoma", true);
+          sessionStore.set("visualFields.laterality", "mono");
+          sessionStore.set("visualFields.newDefect", true);
+          sessionStore.set("visualFields.complaint", true);
+          break;
+
+        case "naion":
+          // Non-arteritic AION
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("pupils.rapdOD", "2+");
+          sessionStore.set("opticNerve.discEdemaOD", true);
+          sessionStore.set("opticNerve.vaReducedOD", true);
+          sessionStore.set("visualFields.altitudinal", true);
+          sessionStore.set("visualFields.respectsHorizontalMeridian", true);
+          sessionStore.set("visualFields.laterality", "mono");
+          sessionStore.set("visualFields.newDefect", true);
+          sessionStore.set("visualFields.complaint", true);
+          break;
+
+        case "pituitary":
+          // Pituitary adenoma with bitemporal hemianopia
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("opticNerve.discPallorOD", true);
+          sessionStore.set("opticNerve.discPallorOS", true);
+          sessionStore.set("visualFields.bitemporal", true);
+          sessionStore.set("visualFields.respectsVerticalMeridian", true);
+          sessionStore.set("visualFields.laterality", "binocular");
+          sessionStore.set("visualFields.complaint", true);
+          sessionStore.set("visualFields.reliability", "good");
+          break;
+
+        case "papilledema":
+          // Papilledema / IIH
+          sessionStore.set("triage.neuroSx", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("opticNerve.discEdemaOD", true);
+          sessionStore.set("opticNerve.discEdemaOS", true);
+          sessionStore.set("opticNerve.hemorrhages", true);
+          sessionStore.set("visualFields.complaint", true);
+          break;
+
+        // ======= NEUROMUSCULAR / COMPLEX =======
+
+        case "mg":
+          // Ocular Myasthenia Gravis
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("eom.ptosis", true);
+          sessionStore.set("eom.diplopia", true);
+          sessionStore.set("eom.fatigable", true);
+          sessionStore.set("eom.notes", "Variability throughout day, worse with fatigue");
+          break;
+
+        case "ted":
+          // Thyroid Eye Disease
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("eom.diplopia", true);
+          sessionStore.set("eom.verticalLimitation", true);
+          sessionStore.set("eom.comitant", false);
+          sessionStore.set("eom.painOnMovement", true);
+          sessionStore.set("eom.notes", "Restrictive pattern, check for lid retraction, proptosis");
+          break;
+
+        case "ino":
+          // INO (often from MS)
+          sessionStore.set("triage.neuroSx", true);
+          sessionStore.set("pupils.odLight", 3.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 5.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "brisk");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("eom.diplopia", true);
+          sessionStore.set("eom.adductionDeficit", true);
+          sessionStore.set("eom.comitant", false);
+          sessionStore.set("eom.notes", "Adduction deficit with nystagmus of abducting eye - INO pattern");
+          break;
+
+        case "cavernous":
+          // Cavernous Sinus Syndrome
+          sessionStore.set("triage.acuteOnset", true);
+          sessionStore.set("triage.painful", true);
+          sessionStore.set("pupils.odLight", 5.5);
+          sessionStore.set("pupils.osLight", 3.5);
+          sessionStore.set("pupils.odDark", 6.5);
+          sessionStore.set("pupils.osDark", 5.5);
+          sessionStore.set("pupils.odLightRxn", "sluggish");
+          sessionStore.set("pupils.osLightRxn", "brisk");
+          sessionStore.set("eom.ptosis", true);
+          sessionStore.set("eom.diplopia", true);
+          sessionStore.set("eom.abductionDeficit", true);
+          sessionStore.set("eom.adductionDeficit", true);
+          sessionStore.set("eom.verticalLimitation", true);
+          sessionStore.set("eom.comitant", false);
+          sessionStore.set("eom.notes", "Multiple CN involvement (III, IV, V1, VI) - cavernous sinus localization");
+          break;
+
+        case "clear":
+          // Already reset above, just return
+          break;
+      }
+    }
+
+    // Bind scenario buttons
+    $("scenarioAneurysm").addEventListener("click", () => applyScenario("aneurysm"));
+    $("scenarioCarotid").addEventListener("click", () => applyScenario("carotid"));
+    $("scenarioGCA").addEventListener("click", () => applyScenario("gca"));
+    $("scenarioStroke").addEventListener("click", () => applyScenario("stroke"));
+
+    $("scenarioPhysiologic").addEventListener("click", () => applyScenario("physiologic"));
+    $("scenarioHorner").addEventListener("click", () => applyScenario("horner"));
+    $("scenarioAdie").addEventListener("click", () => applyScenario("adie"));
+    $("scenarioCN6").addEventListener("click", () => applyScenario("cn6"));
+
+    $("scenarioOpticNeuritis").addEventListener("click", () => applyScenario("opticNeuritis"));
+    $("scenarioNAION").addEventListener("click", () => applyScenario("naion"));
+    $("scenarioPituitary").addEventListener("click", () => applyScenario("pituitary"));
+    $("scenarioPapilledema").addEventListener("click", () => applyScenario("papilledema"));
+
+    $("scenarioMG").addEventListener("click", () => applyScenario("mg"));
+    $("scenarioTED").addEventListener("click", () => applyScenario("ted"));
+    $("scenarioINO").addEventListener("click", () => applyScenario("ino"));
+    $("scenarioCavernous").addEventListener("click", () => applyScenario("cavernous"));
+
+    $("scenarioClear").addEventListener("click", () => applyScenario("clear"));
   </script>
 </body>
 

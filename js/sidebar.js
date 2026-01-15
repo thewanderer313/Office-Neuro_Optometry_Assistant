@@ -26,7 +26,8 @@ function getCategoryBadge(category) {
     pupil: '<span class="dx-category dx-category--pupil">Pupil</span>',
     eom: '<span class="dx-category dx-category--eom">EOM</span>',
     vf: '<span class="dx-category dx-category--vf">VF</span>',
-    neuro: '<span class="dx-category dx-category--neuro">Neuro</span>'
+    neuro: '<span class="dx-category dx-category--neuro">Neuro</span>',
+    optic: '<span class="dx-category dx-category--optic">Optic</span>'
   };
   return badges[category] || '';
 }

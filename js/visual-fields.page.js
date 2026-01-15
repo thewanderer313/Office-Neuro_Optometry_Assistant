@@ -68,6 +68,69 @@ function nextDiscriminatorHint(f) {
     return "Toggle one hallmark feature (homonymous/bitemporal/altitudinal/central scotoma) to refine the differential.";
 }
 
+// Quick preset functions for VF patterns
+function applyPreset(presetType) {
+    switch (presetType) {
+        case "bitemporal":
+            // Chiasmal lesion pattern
+            sessionStore.set("visualFields.testType", "HVF_24-2");
+            sessionStore.set("visualFields.reliability", "good");
+            sessionStore.set("visualFields.newDefect", true);
+            sessionStore.set("visualFields.complaint", true);
+            sessionStore.set("visualFields.laterality", "binocular");
+            sessionStore.set("visualFields.respectsVerticalMeridian", true);
+            sessionStore.set("visualFields.bitemporal", true);
+            sessionStore.set("visualFields.homonymous", false);
+            break;
+
+        case "homonymous":
+            // Retrochiasmal lesion pattern (stroke, tumor)
+            sessionStore.set("visualFields.testType", "HVF_24-2");
+            sessionStore.set("visualFields.reliability", "good");
+            sessionStore.set("visualFields.newDefect", true);
+            sessionStore.set("visualFields.complaint", true);
+            sessionStore.set("visualFields.laterality", "binocular");
+            sessionStore.set("visualFields.respectsVerticalMeridian", true);
+            sessionStore.set("visualFields.homonymous", true);
+            sessionStore.set("visualFields.bitemporal", false);
+            sessionStore.set("visualFields.congruity", "moderate");
+            break;
+
+        case "altitudinal":
+            // AION / Optic nerve pattern
+            sessionStore.set("visualFields.testType", "HVF_24-2");
+            sessionStore.set("visualFields.reliability", "good");
+            sessionStore.set("visualFields.newDefect", true);
+            sessionStore.set("visualFields.complaint", true);
+            sessionStore.set("visualFields.laterality", "mono");
+            sessionStore.set("visualFields.respectsHorizontalMeridian", true);
+            sessionStore.set("visualFields.altitudinal", true);
+            sessionStore.set("visualFields.homonymous", false);
+            sessionStore.set("visualFields.bitemporal", false);
+            // Also set optic nerve findings for AION
+            sessionStore.set("opticNerve.discEdemaOD", true);
+            sessionStore.set("pupils.rapdOD", "2+");
+            break;
+
+        case "central":
+            // Optic neuritis / macular pattern
+            sessionStore.set("visualFields.testType", "HVF_10-2");
+            sessionStore.set("visualFields.reliability", "good");
+            sessionStore.set("visualFields.newDefect", true);
+            sessionStore.set("visualFields.complaint", true);
+            sessionStore.set("visualFields.laterality", "mono");
+            sessionStore.set("visualFields.centralScotoma", true);
+            sessionStore.set("visualFields.homonymous", false);
+            sessionStore.set("visualFields.bitemporal", false);
+            // Also set optic nerve findings for optic neuritis
+            sessionStore.set("opticNerve.colorDeficitOD", true);
+            sessionStore.set("opticNerve.vaReducedOD", true);
+            sessionStore.set("pupils.rapdOD", "2+");
+            sessionStore.set("eom.painOnMovement", true);
+            break;
+    }
+}
+
 function bind() {
     $("vfTestType").addEventListener("change", e => sessionStore.set("visualFields.testType", e.target.value));
     $("vfReliability").addEventListener("change", e => sessionStore.set("visualFields.reliability", e.target.value));
@@ -86,6 +149,12 @@ function bind() {
 
     $("vfCongruity").addEventListener("change", e => sessionStore.set("visualFields.congruity", e.target.value));
     $("vfNotes").addEventListener("input", e => sessionStore.set("visualFields.notes", e.target.value));
+
+    // Quick presets
+    $("presetBitemporal").addEventListener("click", () => applyPreset("bitemporal"));
+    $("presetHomonymous").addEventListener("click", () => applyPreset("homonymous"));
+    $("presetAltitudinal").addEventListener("click", () => applyPreset("altitudinal"));
+    $("presetCentral").addEventListener("click", () => applyPreset("central"));
 }
 
 function init() {

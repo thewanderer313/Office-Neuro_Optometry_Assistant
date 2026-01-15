@@ -11,8 +11,10 @@ function boolOrNullFromSelect(v) {
   return null;
 }
 
-// Track gaze grid deficits (not persisted, just visual)
-const gazeDeficits = new Set();
+// Track gaze grid deficits per eye (stored in session for persistence)
+// Format: "OD:upleft", "OS:right", etc.
+const gazeDeficitsOD = new Set();
+const gazeDeficitsOS = new Set();
 
 // Clinical guidance hint functions
 function eomLocalizationHint(f, e) {
@@ -165,43 +167,109 @@ function applyPreset(presetType) {
       sessionStore.set("eom.adductionDeficit", true);
       sessionStore.set("eom.comitant", false);
       break;
+
+    case "ted":
+      // Thyroid Eye Disease: restrictive strabismus, typically IR involvement
+      sessionStore.set("eom.diplopia", true);
+      sessionStore.set("eom.verticalLimitation", true);
+      sessionStore.set("eom.comitant", false);
+      sessionStore.set("eom.painOnMovement", true);
+      sessionStore.set("triage.acuteOnset", false);
+      sessionStore.set("eom.notes", "Restrictive pattern - suspect TED. Check for lid retraction, proptosis.");
+      break;
+
+    case "skew":
+      // Skew deviation: vertical misalignment, comitant, brainstem/cerebellar
+      sessionStore.set("eom.diplopia", true);
+      sessionStore.set("eom.verticalLimitation", true);
+      sessionStore.set("eom.comitant", true); // Key feature - comitant unlike CN IV
+      sessionStore.set("triage.neuroSx", true);
+      sessionStore.set("eom.notes", "Comitant vertical deviation - skew pattern. Check for head tilt, ocular torsion.");
+      break;
+
+    case "cpeo":
+      // CPEO: bilateral symmetric ptosis and ophthalmoplegia, gradual onset
+      sessionStore.set("eom.ptosis", true);
+      sessionStore.set("eom.diplopia", true);
+      sessionStore.set("eom.verticalLimitation", true);
+      sessionStore.set("eom.abductionDeficit", true);
+      sessionStore.set("eom.adductionDeficit", true);
+      sessionStore.set("eom.comitant", true);
+      sessionStore.set("eom.notes", "Bilateral symmetric - suspect CPEO/mitochondrial. Check for orbicularis weakness.");
+      break;
+
+    case "parinaud":
+      // Parinaud/Dorsal midbrain: upgaze palsy, light-near dissociation
+      sessionStore.set("eom.diplopia", false); // Often no diplopia, just gaze limitation
+      sessionStore.set("eom.verticalLimitation", true);
+      sessionStore.set("pupils.lightNearDissociation", true);
+      sessionStore.set("triage.neuroSx", true);
+      sessionStore.set("eom.notes", "Upgaze palsy with convergence-retraction nystagmus pattern - Parinaud syndrome.");
+      break;
   }
 }
 
-// Update gaze grid visual state
-function updateGazeGrid(session) {
+// Update gaze grid visual state for both eyes
+function updateGazeGrids(session) {
   const e = session.eom || {};
-  const grid = $("eomGrid");
-  if (!grid) return;
+  const gridOD = $("eomGridOD");
+  const gridOS = $("eomGridOS");
 
-  // Update grid cells based on deficit flags
-  grid.querySelectorAll(".eom-cell[data-gaze]").forEach(cell => {
-    const gaze = cell.dataset.gaze;
+  // Load saved deficits from session
+  if (e.gazeDeficitsOD) {
+    gazeDeficitsOD.clear();
+    e.gazeDeficitsOD.forEach(g => gazeDeficitsOD.add(g));
+  }
+  if (e.gazeDeficitsOS) {
+    gazeDeficitsOS.clear();
+    e.gazeDeficitsOS.forEach(g => gazeDeficitsOS.add(g));
+  }
 
-    // Determine if this cell should be marked as deficit based on summary flags
-    let isDeficit = false;
+  // Update OD grid
+  if (gridOD) {
+    gridOD.querySelectorAll(".eom-cell[data-gaze]").forEach(cell => {
+      const gaze = cell.dataset.gaze;
+      const isDeficit = gazeDeficitsOD.has(gaze);
+      cell.classList.toggle("deficit", isDeficit);
+    });
+  }
 
-    // Abduction deficits affect left/right
-    if (e.abductionDeficit && (gaze === "left" || gaze === "right")) {
-      isDeficit = true;
-    }
-    // Adduction deficits (medial movements - opposite of abduction context)
-    // For simplicity, we mark if adductionDeficit is checked
-    if (e.adductionDeficit && (gaze === "left" || gaze === "right")) {
-      isDeficit = true;
-    }
-    // Vertical limitations
-    if (e.verticalLimitation && (gaze === "up" || gaze === "down" || gaze === "upleft" || gaze === "upright" || gaze === "downleft" || gaze === "downright")) {
-      isDeficit = true;
-    }
+  // Update OS grid
+  if (gridOS) {
+    gridOS.querySelectorAll(".eom-cell[data-gaze]").forEach(cell => {
+      const gaze = cell.dataset.gaze;
+      const isDeficit = gazeDeficitsOS.has(gaze);
+      cell.classList.toggle("deficit", isDeficit);
+    });
+  }
+}
 
-    // Also check manual gaze deficits
-    if (gazeDeficits.has(gaze)) {
-      isDeficit = true;
-    }
+// Auto-detect summary flags based on gaze deficits
+function updateSummaryFlagsFromGrids() {
+  // Check for abduction deficit (LR is lateral in each eye)
+  // OD: left gaze is abduction (LR), OS: right gaze is abduction (LR)
+  const hasAbductionDeficit = gazeDeficitsOD.has("left") || gazeDeficitsOS.has("right");
 
-    cell.classList.toggle("deficit", isDeficit);
-  });
+  // Check for adduction deficit (MR is medial in each eye)
+  // OD: right gaze is adduction (MR), OS: left gaze is adduction (MR)
+  const hasAdductionDeficit = gazeDeficitsOD.has("right") || gazeDeficitsOS.has("left");
+
+  // Check for vertical limitation
+  const verticalGazes = ["up", "down", "upleft", "upright", "downleft", "downright"];
+  const hasVerticalLimitation = verticalGazes.some(g =>
+    gazeDeficitsOD.has(g) || gazeDeficitsOS.has(g)
+  );
+
+  // Update session if deficits detected (don't clear if manually set)
+  if (hasAbductionDeficit && !sessionStore.getSession().eom?.abductionDeficit) {
+    sessionStore.set("eom.abductionDeficit", true);
+  }
+  if (hasAdductionDeficit && !sessionStore.getSession().eom?.adductionDeficit) {
+    sessionStore.set("eom.adductionDeficit", true);
+  }
+  if (hasVerticalLimitation && !sessionStore.getSession().eom?.verticalLimitation) {
+    sessionStore.set("eom.verticalLimitation", true);
+  }
 }
 
 function syncFromSession(session) {
@@ -233,8 +301,8 @@ function syncFromSession(session) {
   if (qualEl) qualEl.textContent = eomQualityHint(e);
   if (nextEl) nextEl.textContent = eomNextDiscriminatorHint(f, e);
 
-  // Update gaze grid
-  updateGazeGrid(session);
+  // Update gaze grids for both eyes
+  updateGazeGrids(session);
 }
 
 function bind() {
@@ -255,35 +323,58 @@ function bind() {
   $("presetCN4").addEventListener("click", () => applyPreset("cn4"));
   $("presetMG").addEventListener("click", () => applyPreset("mg"));
   $("presetINO").addEventListener("click", () => applyPreset("ino"));
+  $("presetTED").addEventListener("click", () => applyPreset("ted"));
+  $("presetSkew").addEventListener("click", () => applyPreset("skew"));
+  $("presetCPEO").addEventListener("click", () => applyPreset("cpeo"));
+  $("presetParinaud").addEventListener("click", () => applyPreset("parinaud"));
 
-  // Gaze grid click handling
-  const grid = $("eomGrid");
-  if (grid) {
-    grid.addEventListener("click", (e) => {
+  // Gaze grid click handling for OD
+  const gridOD = $("eomGridOD");
+  if (gridOD) {
+    gridOD.addEventListener("click", (e) => {
       const cell = e.target.closest(".eom-cell[data-gaze]");
       if (!cell) return;
 
       const gaze = cell.dataset.gaze;
 
-      // Toggle deficit
-      if (gazeDeficits.has(gaze)) {
-        gazeDeficits.delete(gaze);
+      // Toggle deficit for OD
+      if (gazeDeficitsOD.has(gaze)) {
+        gazeDeficitsOD.delete(gaze);
       } else {
-        gazeDeficits.add(gaze);
+        gazeDeficitsOD.add(gaze);
       }
 
-      // Auto-set summary flags based on gaze
-      if (gaze === "left" || gaze === "right") {
-        // Could be abduction or adduction depending on which eye
-        // For simplicity, we'll let user choose from checkboxes
-      }
-      if (gaze.includes("up") || gaze.includes("down")) {
-        if (gazeDeficits.has(gaze)) {
-          sessionStore.set("eom.verticalLimitation", true);
-        }
+      // Save to session
+      sessionStore.set("eom.gazeDeficitsOD", Array.from(gazeDeficitsOD));
+
+      // Auto-update summary flags
+      updateSummaryFlagsFromGrids();
+      updateGazeGrids(sessionStore.getSession());
+    });
+  }
+
+  // Gaze grid click handling for OS
+  const gridOS = $("eomGridOS");
+  if (gridOS) {
+    gridOS.addEventListener("click", (e) => {
+      const cell = e.target.closest(".eom-cell[data-gaze]");
+      if (!cell) return;
+
+      const gaze = cell.dataset.gaze;
+
+      // Toggle deficit for OS
+      if (gazeDeficitsOS.has(gaze)) {
+        gazeDeficitsOS.delete(gaze);
+      } else {
+        gazeDeficitsOS.add(gaze);
       }
 
-      updateGazeGrid(sessionStore.getSession());
+      // Save to session
+      sessionStore.set("eom.gazeDeficitsOS", Array.from(gazeDeficitsOS));
+
+      // Auto-update summary flags
+      updateSummaryFlagsFromGrids();
+      updateGazeGrids(sessionStore.getSession());
     });
   }
 }

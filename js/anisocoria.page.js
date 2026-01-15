@@ -243,9 +243,17 @@ function syncFromSession(session) {
 
 // Quick preset functions
 function applyPreset(presetType) {
-  const session = sessionStore.getSession();
-
   switch (presetType) {
+    case "physiologic":
+      // Physiologic anisocoria: stable ~0.4mm difference, both conditions similar
+      sessionStore.set("pupils.odLight", 3.5);
+      sessionStore.set("pupils.osLight", 3.1);
+      sessionStore.set("pupils.odDark", 5.5);
+      sessionStore.set("pupils.osDark", 5.1);
+      sessionStore.set("pupils.odLightRxn", "brisk");
+      sessionStore.set("pupils.osLightRxn", "brisk");
+      break;
+
     case "horner":
       // Small pupil pattern: OS smaller, greater anisocoria in dark
       // Typical Horner: ~2mm miosis with dilation lag
@@ -270,6 +278,8 @@ function applyPreset(presetType) {
       sessionStore.set("pupils.osLightRxn", "brisk");
       sessionStore.set("eom.ptosis", true);
       sessionStore.set("eom.diplopia", true);
+      sessionStore.set("eom.adductionDeficit", true);
+      sessionStore.set("eom.verticalLimitation", true);
       break;
 
     case "adie":
@@ -295,6 +305,56 @@ function applyPreset(presetType) {
       sessionStore.set("pupils.odLightRxn", "none");
       sessionStore.set("pupils.osLightRxn", "brisk");
       sessionStore.set("pupils.anticholinergicExposure", true);
+      break;
+
+    case "aion":
+      // AION pattern: RAPD, disc edema, altitudinal defect
+      sessionStore.set("pupils.odLight", 3.5);
+      sessionStore.set("pupils.osLight", 3.5);
+      sessionStore.set("pupils.odDark", 5.5);
+      sessionStore.set("pupils.osDark", 5.5);
+      sessionStore.set("pupils.odLightRxn", "brisk");
+      sessionStore.set("pupils.osLightRxn", "brisk");
+      sessionStore.set("pupils.rapdOD", "3+");
+      sessionStore.set("opticNerve.discEdemaOD", true);
+      sessionStore.set("opticNerve.vaReducedOD", true);
+      sessionStore.set("opticNerve.colorDeficitOD", true);
+      sessionStore.set("triage.acuteOnset", true);
+      sessionStore.set("visualFields.altitudinal", true);
+      sessionStore.set("visualFields.respectsHorizontalMeridian", true);
+      sessionStore.set("visualFields.laterality", "mono");
+      break;
+
+    case "opticNeuritis":
+      // Optic neuritis: RAPD, pain on movement, central scotoma
+      sessionStore.set("pupils.odLight", 3.5);
+      sessionStore.set("pupils.osLight", 3.5);
+      sessionStore.set("pupils.odDark", 5.5);
+      sessionStore.set("pupils.osDark", 5.5);
+      sessionStore.set("pupils.odLightRxn", "brisk");
+      sessionStore.set("pupils.osLightRxn", "brisk");
+      sessionStore.set("pupils.rapdOD", "2+");
+      sessionStore.set("opticNerve.colorDeficitOD", true);
+      sessionStore.set("opticNerve.vaReducedOD", true);
+      sessionStore.set("eom.painOnMovement", true);
+      sessionStore.set("triage.acuteOnset", true);
+      sessionStore.set("triage.painful", true);
+      sessionStore.set("visualFields.centralScotoma", true);
+      sessionStore.set("visualFields.laterality", "mono");
+      break;
+
+    case "papilledema":
+      // Papilledema: bilateral disc edema, no RAPD initially
+      sessionStore.set("pupils.odLight", 3.5);
+      sessionStore.set("pupils.osLight", 3.5);
+      sessionStore.set("pupils.odDark", 5.5);
+      sessionStore.set("pupils.osDark", 5.5);
+      sessionStore.set("pupils.odLightRxn", "brisk");
+      sessionStore.set("pupils.osLightRxn", "brisk");
+      sessionStore.set("opticNerve.discEdemaOD", true);
+      sessionStore.set("opticNerve.discEdemaOS", true);
+      sessionStore.set("opticNerve.hemorrhages", true);
+      sessionStore.set("triage.neuroSx", true);
       break;
   }
 }
@@ -343,10 +403,14 @@ function bind() {
   $("opticNerveNotes").addEventListener("input", e => sessionStore.set("opticNerve.notes", e.target.value));
 
   // Quick presets
+  $("presetPhysiologic").addEventListener("click", () => applyPreset("physiologic"));
   $("presetHorner").addEventListener("click", () => applyPreset("horner"));
   $("presetCN3").addEventListener("click", () => applyPreset("cn3"));
   $("presetAdie").addEventListener("click", () => applyPreset("adie"));
   $("presetPharmaco").addEventListener("click", () => applyPreset("pharmacologic"));
+  $("presetAION").addEventListener("click", () => applyPreset("aion"));
+  $("presetOpticNeuritis").addEventListener("click", () => applyPreset("opticNeuritis"));
+  $("presetPapilledema").addEventListener("click", () => applyPreset("papilledema"));
 
   // Lighting toggle for pupil diagram
   $("lightingLight").addEventListener("click", () => {
