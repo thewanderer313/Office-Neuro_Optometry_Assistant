@@ -1981,14 +1981,14 @@ export function scoreDifferential(f) {
     ], "eom");
   }
 
-  // 39. Duane retraction syndrome
+  // 39. Duane retraction syndrome (Type I)
   // Reference: DeRespinis PA, et al. Duane's retraction syndrome.
   // Congenital, limited abduction, globe retraction on adduction
   {
     let s = 0; const why = [];
 
     if (f.abductionDeficit === true) {
-      s += 3;
+      s += 4;
       why.push("Abduction deficit");
     }
     // Usually not acute
@@ -2011,11 +2011,15 @@ export function scoreDifferential(f) {
       s += 1;
       why.push("No diplopia in primary gaze");
     }
+    // Incomitant deviation typical
+    if (f.comitant === false && f.abductionDeficit === true) {
+      s += 1;
+      why.push("Incomitant deviation");
+    }
 
-    if (s >= 5) add("Duane retraction syndrome (consider)", s, why, [
+    if (s >= 6) add("Duane retraction syndrome Type I", s, why, [
       "Congenital CN VI aplasia with aberrant CN III innervation to LR",
-      "Type I (most common): limited abduction",
-      "Type II: limited adduction; Type III: limited both",
+      "Type I: limited abduction (most common)",
       "Globe retraction and palpebral fissure narrowing on adduction",
       "Usually unilateral (left > right), female predominance",
       "Face turn toward affected side to maintain binocularity",
@@ -2023,7 +2027,53 @@ export function scoreDifferential(f) {
     ], "eom");
   }
 
-  // 40. Brown syndrome
+  // 40. Duane retraction syndrome (Type II)
+  // Reference: DeRespinis PA, et al. Duane's retraction syndrome.
+  // Congenital, limited adduction, globe retraction on adduction
+  {
+    let s = 0; const why = [];
+
+    if (f.adductionDeficit === true) {
+      s += 4;
+      why.push("Adduction deficit");
+    }
+    // Usually not acute
+    if (!f.acute && f.adductionDeficit === true) {
+      s += 2;
+      why.push("Non-acute presentation (congenital)");
+    }
+    // No pain
+    if (!f.painful && f.adductionDeficit === true) {
+      s += 1;
+      why.push("Painless");
+    }
+    // Pupil-sparing
+    if (!largePattern && !smallPattern && f.adductionDeficit === true) {
+      s += 1;
+      why.push("Pupil-sparing");
+    }
+    // No diplopia in primary (often)
+    if (!f.diplopia && f.adductionDeficit === true) {
+      s += 1;
+      why.push("No diplopia in primary gaze");
+    }
+    // Incomitant deviation typical
+    if (f.comitant === false && f.adductionDeficit === true) {
+      s += 1;
+      why.push("Incomitant deviation");
+    }
+
+    if (s >= 6) add("Duane retraction syndrome Type II", s, why, [
+      "Congenital misinnervation of LR by CN III",
+      "Type II: limited adduction (less common)",
+      "Globe retraction and palpebral fissure narrowing on adduction",
+      "Often esotropia in primary with paradoxical upshoot/downshoot",
+      "Usually unilateral; face turn to maintain binocularity",
+      "Surgery for significant primary position deviation"
+    ], "eom");
+  }
+
+  // 41. Brown syndrome
   // Reference: Wright KW. Brown's syndrome: diagnosis and management.
   // Limited elevation in adduction
   {
@@ -2058,7 +2108,7 @@ export function scoreDifferential(f) {
     ], "eom");
   }
 
-  // 41. Ocular neuromyotonia
+  // 42. Ocular neuromyotonia
   // Reference: Yee RD, et al. Ocular neuromyotonia.
   // Episodic sustained EOM contraction, often after radiation
   {
@@ -2093,7 +2143,7 @@ export function scoreDifferential(f) {
   // ADDITIONAL OPTIC NERVE CONDITIONS
   // =====================================
 
-  // 42. Papilledema (increased ICP)
+  // 43. Papilledema (increased ICP)
   // Reference: Friedman DI, et al. Revised diagnostic criteria for pseudotumor cerebri syndrome.
   // Bilateral disc edema from elevated ICP
   {

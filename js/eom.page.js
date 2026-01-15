@@ -260,15 +260,20 @@ function updateSummaryFlagsFromGrids() {
     gazeDeficitsOD.has(g) || gazeDeficitsOS.has(g)
   );
 
-  // Update session if deficits detected (don't clear if manually set)
-  if (hasAbductionDeficit && !sessionStore.getSession().eom?.abductionDeficit) {
-    sessionStore.set("eom.abductionDeficit", true);
+  // Sync summary flags to grid state so removing deficits clears the flags
+  const current = sessionStore.getSession().eom || {};
+  const nextAbduction = hasAbductionDeficit ? true : null;
+  const nextAdduction = hasAdductionDeficit ? true : null;
+  const nextVertical = hasVerticalLimitation ? true : null;
+
+  if (current.abductionDeficit !== nextAbduction) {
+    sessionStore.set("eom.abductionDeficit", nextAbduction);
   }
-  if (hasAdductionDeficit && !sessionStore.getSession().eom?.adductionDeficit) {
-    sessionStore.set("eom.adductionDeficit", true);
+  if (current.adductionDeficit !== nextAdduction) {
+    sessionStore.set("eom.adductionDeficit", nextAdduction);
   }
-  if (hasVerticalLimitation && !sessionStore.getSession().eom?.verticalLimitation) {
-    sessionStore.set("eom.verticalLimitation", true);
+  if (current.verticalLimitation !== nextVertical) {
+    sessionStore.set("eom.verticalLimitation", nextVertical);
   }
 }
 
